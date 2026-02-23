@@ -1,0 +1,97 @@
+generator client {
+  provider        = "prisma-client-js"
+  // 开启 PostgreSQL 的扩展功能支持，用于启用 pgvector 向量搜索
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // 声明使用 vector 扩展
+  extensions = [vector]
+}
+
+// 1. 微信聊天记录表 (用于 RAG 记忆)
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  sender    String   // 发送者 (比如: "我" 或 "女友")
+  content   String   // 聊天内容文本
+  sendTime  DateTime // 发送时间
+  
+  // 核心：用于存储文本被 AI 转化后的高维向量，1536 是常用模型(如 OpenAI/通义千问)的维度
+  embedding Unsupported("vector(1536)")? 
+
+  @@map("chat_messages")
+}
+
+// 2. 时光手账表 (升级版)
+model Moment {
+  id        Int       @id @default(autoincrement())
+  author    String    // 发布人
+  content   String    // 内容
+  images    String[]  // 图片链接数组
+  videoUrl  String?   // [新增] 视频链接 (可选)
+  tags      String[]  // [新增] 标签数组
+  
+  // 关联关系
+  comments  Comment[]
+  likes     Like[]
+
+  bucketLists BucketList[]
+
+  createdAt DateTime  @default(now())
+
+  @@map("moments")
+}
+
+// [新增] 评论表
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  author    String   // 评论人
+  momentId  Int
+  moment    Moment   @relation(fields: [momentId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}
+
+// [新增] 点赞表
+model Like {
+  id        Int      @id @default(autoincrement())
+  author    String   // 点赞人
+  emoji     String   // [新增] 具体的表情，如 "❤️", "🫂"(抱抱), "👍"
+  momentId  Int
+  moment    Moment   @relation(fields: [momentId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("likes")
+}
+
+// 3. 纪念日与倒数日表 (升级版)
+model Milestone {
+  id          Int      @id @default(autoincrement())
+  title       String   // 标题: "在一起", "女友生日"
+  date        DateTime // 日期
+  isCountdown Boolean  @default(false) // false=正数(在一起X天), true=倒数(还有X天)
+  remind      Boolean  @default(false) // 是否开启邮件提醒
+
+  @@map("milestones")
+}
+
+// 4. 恋爱清单 (升级版)
+model BucketList {
+  id          Int      @id @default(autoincrement())
+  title       String
+  status      String   @default("TODO") // TODO, DOING, DONE
+  targetDate  DateTime? // 计划完成时间
+  
+  // 闭环联动：完成后关联一条手账 ID
+  momentId    Int?     
+  moment      Moment?  @relation(fields: [momentId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("bucket_lists")
+}

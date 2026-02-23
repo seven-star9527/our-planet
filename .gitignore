@@ -1,5 +1,36 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# --------------------
+# 必须忽略的敏感文件
+# --------------------
+.env
+.env*.local
+
+# --------------------
+# 依赖包和构建产物
+# --------------------
+/node_modules
+/.next/
+/out/
+/build
+
+# --------------------
+# 数据库文件 (Docker 挂载的数据不要上传)
+# --------------------
+/pgdata
+
+# --------------------
+# 本地上传的图片/视频 (通常不传到代码库，除非你想备份这些媒体文件)
+# 如果你想备份图片，就不要加下面这一行；
+# 如果图片很多，建议忽略，以后用云存储。
+# 目前建议先保留在本地，不上传到 GitHub，以免仓库过大。
+/public/uploads
+
+# --------------------
+# 隐私数据
+# --------------------
+scripts/wechat_history.json
+
 # dependencies
 /node_modules
 /.pnp
