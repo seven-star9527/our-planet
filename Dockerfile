@@ -41,7 +41,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 
 # 关键修复：全局安装 prisma CLI，一次性解决所有依赖链问题
-RUN npm install -g prisma
+RUN npm install -g prisma@6.19.2
 
 # Ensure uploads directory exists and is writable
 RUN mkdir -p public/uploads
