@@ -33,5 +33,29 @@ export async function updateBucketStatus(id: number, status: string) {
   revalidatePath('/bucket-list');
 }
 
+// 更新纪念日
+export async function updateMilestone(id: number, formData: FormData) {
+  const title = formData.get('title') as string;
+  const dateStr = formData.get('date') as string;
+  const type = formData.get('type') as string;
+
+  if (!title || !dateStr) return { success: false, error: '信息不完整' };
+
+  try {
+    await prisma.milestone.update({
+      where: { id },
+      data: {
+        title: title.trim(),
+        date: new Date(dateStr),
+        isCountdown: type === 'countdown',
+      }
+    });
+    revalidatePath('/milestones');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: '更新失败' };
+  }
+}
+
 // 核心闭环：完成清单 -> 跳转去写手账
 // 这里我们不直接写库，而是生成一个带参数的跳转链接给前端用

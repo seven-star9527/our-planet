@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   db:
     image: ankane/pgvector:latest
@@ -8,10 +9,32 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: wzhpxy2026
       POSTGRES_DB: our_planet
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d our_planet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: our_planet_web
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - prisma/.env
+    environment:
+      - DATABASE_URL=postgresql://admin:wzhpxy2026@db:5432/our_planet?schema=public
+    volumes:
+      # 持久化保存用户上传到服务器自带磁盘的照片
+      - ./uploads_data:/app/public/uploads
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:

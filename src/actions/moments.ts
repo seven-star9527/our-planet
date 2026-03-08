@@ -1,13 +1,31 @@
 'use server'
 
-import prisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache'; // 关键：用于操作后即时刷新页面
+import prisma from '@/lib/prisma'; 
+import { revalidatePath } from 'next/cache'; 
 import { redirect } from 'next/navigation';
+import { getSettings } from './settings';
+import { cookies } from 'next/headers'; // ✨ 新增：引入 cookies 用于读取身份
+
+// ✨ 新增一个辅助函数：自动根据当前登录的身份，获取对应的专属昵称
+async function getCurrentAuthorName() {
+  const cookieStore = await cookies();
+  const role = cookieStore.get('user_role')?.value;
+
+  const settings = await getSettings();
+  const boyName = settings.boyName || '男主';
+  const girlName = settings.girlName || '女主';
+
+  if (role === 'boy') return boyName;
+  if (role === 'girl') return girlName;
+  return '神秘人'; // 兜底：万一没有走登录流程
+}
 
 // 1. 发布手账 (支持视频和标签)
 export async function createMoment(formData: FormData) {
   const content = formData.get('content') as string;
-  const author = "我"; // 暂时写死
+  
+  // ✨ 修改：获取真实的专属昵称，替换写死的 "我"
+  const author = await getCurrentAuthorName(); 
   
   // 处理图片和视频
   const imageString = formData.get('imageUrls') as string;
@@ -26,15 +44,33 @@ export async function createMoment(formData: FormData) {
 
   redirect('/moments');
 }
+// 更新手账内容
+export async function updateMoment(id: number, newContent: string) {
+  if (!newContent.trim()) return { success: false, error: '内容不能为空' };
+  
+  try {
+    await prisma.moment.update({
+      where: { id },
+      data: { content: newContent.trim() }
+    });
+    revalidatePath('/moments');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: '更新失败' };
+  }
+}
 
 // 2. 发表评论
 export async function addComment(momentId: number, content: string) {
   if (!content.trim()) return;
   
+  // ✨ 修改：获取真实的专属昵称
+  const authorName = await getCurrentAuthorName();
+
   await prisma.comment.create({
     data: {
       content,
-      author: "我", // 实际项目中应获取当前登录用户
+      author: authorName, 
       momentId,
     },
   });
@@ -45,11 +81,13 @@ export async function addComment(momentId: number, content: string) {
 
 // 3. 点赞/取消点赞
 export async function toggleLike(momentId: number, emoji: string) {
-  // 简单逻辑：如果我已经赞过，就当做是追加新的表情，或者你可以做成“取消赞”
-  // 这里我们做成：直接添加一个赞
+  // ✨ 修改：获取真实的专属昵称
+  const authorName = await getCurrentAuthorName();
+
+  // 简单逻辑：直接添加一个赞
   await prisma.like.create({
     data: {
-      author: "我",
+      author: authorName,
       emoji,
       momentId,
     },
