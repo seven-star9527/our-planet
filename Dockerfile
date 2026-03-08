@@ -25,7 +25,6 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
-# Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN addgroup --system --gid 1001 nodejs
@@ -40,10 +39,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
-# Provide full prisma dependencies for the db push command to work in standalone mode
-COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+
+# 关键修复：全局安装 prisma CLI，一次性解决所有依赖链问题
+RUN npm install -g prisma
 
 # Ensure uploads directory exists and is writable
 RUN mkdir -p public/uploads
@@ -56,4 +54,4 @@ ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
 # Run migrations and start the app
-CMD npx prisma db push && node server.js
+CMD prisma db push && node server.js
