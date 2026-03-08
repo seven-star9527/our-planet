@@ -54,4 +54,4 @@ ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
 # Run migrations and start the app
-CMD prisma db push && node server.js
+CMD prisma db push --skip-generate && node server.js
