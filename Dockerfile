@@ -40,8 +40,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+# Provide full prisma dependencies for the db push command to work in standalone mode
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
 # Ensure uploads directory exists and is writable
 RUN mkdir -p public/uploads
@@ -54,4 +56,4 @@ ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
 # Run migrations and start the app
-CMD node ./node_modules/prisma/build/index.js db push && node server.js
+CMD npx prisma db push && node server.js
