@@ -159,3 +159,18 @@ model AffinityLog {
 
   @@map("affinity_logs")
 }
+
+model HomeMessage {
+  id          Int      @id @default(autoincrement())
+  sender      String   // 发送者 (boy/girl)
+  content     String   // 留言内容
+  fontFamily  String?  // 字体
+  color       String   // 颜色
+  size        String   // 大小 (如 text-lg, text-2xl 或 具体 px)
+  isAnimated  Boolean  @default(true) // 是否飘动
+  showAt      DateTime // 设定的展示时间
+  duration    Int      // 持续展示时间 (秒)，或者设为0表示一直展示
+  createdAt   DateTime @default(now())
+
+  @@map("home_messages")
+}
