@@ -9,6 +9,99 @@ import {
   RankedMemory,
 } from "@/lib/ai";
 
+// ========== 意图分类 ==========
+type IntentType = 'fact_query' | 'emotion_support' | 'advice_request' | 'casual_chat';
+
+function classifyIntent(userMessage: string): IntentType {
+  const lowerMsg = userMessage.toLowerCase();
+
+  // 事实查询类问题
+  const factPatterns = [
+    /什么时候|哪天|几号|哪天|去年|今年|去年|记得.*说|说过|去过|吃过|做过|我们.*第|第一次|最后|最早|最近|上周|下周|昨天|明天/,
+    /是什么|在哪|是谁|有.*吗|没.*吗|是不是|有没有/,
+    /告诉.*我|帮我.*回忆|翻.*记忆/,
+  ];
+
+  // 情感支持类问题
+  const emotionPatterns = [
+    /心情|难过|开心|生气|委屈|想.*你|爱你|喜欢|讨厌|烦恼|焦虑|担心/,
+    /哄|安慰|鼓励|陪我|抱抱/,
+  ];
+
+  // 建议请求类问题
+  const advicePatterns = [
+    /怎么办|怎么办|怎么.*做|要不要|建议|推荐|想吃.*好|去哪.*好|送.*什么/,
+    /约会|生日|纪念日|礼物/,
+  ];
+
+  if (factPatterns.some(p => p.test(lowerMsg))) return 'fact_query';
+  if (emotionPatterns.some(p => p.test(lowerMsg))) return 'emotion_support';
+  if (advicePatterns.some(p => p.test(lowerMsg))) return 'advice_request';
+  return 'casual_chat';
+}
+
+// ========== 智能上下文补充 (多跳推理) ==========
+async function expandContextWithNeighbors(
+  memories: RankedMemory[],
+  prisma: any
+): Promise<RankedMemory[]> {
+  if (memories.length === 0) return memories;
+
+  const expanded: RankedMemory[] = [...memories];
+  const addedIds = new Set(memories.map(m => m.content.substring(0, 100)));
+
+  // 对于每条高相关记忆，尝试找相邻的记忆（时间上接近的）
+  for (const mem of memories.slice(0, 3)) { // 只处理前3条，避免过度扩展
+    try {
+      const memTime = new Date(mem.sendTime);
+      const timeWindow = 30 * 60 * 1000; // 30分钟内
+
+      const neighbors = await prisma.$queryRaw<any[]>`
+        SELECT content, sender, "sendTime"
+        FROM chat_messages
+        WHERE "sendTime" BETWEEN ${new Date(memTime.getTime() - timeWindow)} AND ${new Date(memTime.getTime() + timeWindow)}
+        ORDER BY ABS(EXTRACT(EPOCH FROM ("sendTime" - ${memTime})))
+        LIMIT 2
+      `;
+
+      for (const n of neighbors) {
+        const preview = n.content.substring(0, 100);
+        if (!addedIds.has(preview)) {
+          addedIds.add(preview);
+          expanded.push({
+            content: n.content,
+            sender: n.sender,
+            sendTime: n.sendTime,
+            relevance: 'medium',
+            reason: `与主要记忆时间相邻，补充上下文`,
+          });
+        }
+      }
+    } catch (e) {
+      // 静默失败，不影响主流程
+    }
+  }
+
+  return expanded.slice(0, 8); // 最多返回8条
+}
+
+// ========== 时间感知权重调整 ==========
+function adjustRelevanceByRecency(memories: RankedMemory[]): RankedMemory[] {
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  return memories.map(m => {
+    const age = now - new Date(m.sendTime).getTime();
+    const days = age / dayMs;
+
+    // 如果是7天内的新记忆，适当提升相关性标签
+    if (days <= 7 && m.relevance === 'medium') {
+      return { ...m, relevance: 'medium' as const, reason: m.reason + ' (近期记忆)' };
+    }
+    return m;
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { message } = await req.json();
@@ -19,38 +112,61 @@ export async function POST(req: NextRequest) {
 
     // ═══════════════════════════════════════════════════
     // 🧠 第一阶段：智能查询扩展 (Query Expansion)
-    // 将用户的短问题扩展为丰富的搜索文本，提升检索命中率
     // ═══════════════════════════════════════════════════
-    const expandedQuery = await expandQuery(message);
-    console.log(`📝 原始问题: "${message}"`);
-    console.log(`🔍 扩展查询: "${expandedQuery}"`);
+    let expandedQuery = message; // 默认使用原始消息
+    try {
+      expandedQuery = await expandQuery(message);
+      console.log(`📝 原始问题: "${message}"`);
+      console.log(`🔍 扩展查询: "${expandedQuery}"`);
+    } catch (e) {
+      console.warn("⚠️ 查询扩展失败，使用原始问题:", e);
+    }
 
     // ═══════════════════════════════════════════════════
     // 🔎 第二阶段：混合检索 (Hybrid Search)
-    // 向量搜索 + 关键词搜索，双管齐下扩大召回范围
     // ═══════════════════════════════════════════════════
 
-    // 2a. 向量搜索（用扩展后的查询生成 embedding）
-    const queryEmbedding = await generateEmbedding(expandedQuery);
-    const vectorQuery = `[${queryEmbedding.join(",")}]`;
-
-    const vectorResults: Array<{
+    // 2a. 向量搜索
+    let vectorResults: Array<{
       id: number;
       content: string;
       sender: string;
       sendTime: Date;
       similarity: number;
-    }> = await prisma.$queryRaw`
-      SELECT id, content, sender, "sendTime",
-             1 - (embedding <=> ${vectorQuery}::vector) as similarity
-      FROM chat_messages
-      WHERE 1 - (embedding <=> ${vectorQuery}::vector) > 0.3
-      ORDER BY embedding <=> ${vectorQuery}::vector
-      LIMIT 12
-    `;
+    }> = [];
 
-    // 2b. 关键词搜索（从用户原始问题中提取关键词进行模糊匹配）
-    const keywords = extractKeywords(message);
+    try {
+      const queryEmbedding = await generateEmbedding(expandedQuery);
+      const vectorQuery = `[${queryEmbedding.join(",")}]`;
+
+      const rawVectorResults: any[] = await prisma.$queryRaw`
+        SELECT id, content, sender, "sendTime",
+               1 - (embedding <=> ${vectorQuery}::vector) as similarity
+        FROM chat_messages
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> ${vectorQuery}::vector
+        LIMIT 15
+      `;
+
+      // Prisma 返回的 numeric 类型是 Decimal 对象，需要转为 number
+      vectorResults = rawVectorResults
+        .map((r) => ({
+          id: Number(r.id),
+          content: r.content,
+          sender: r.sender,
+          sendTime: r.sendTime,
+          similarity: Number(r.similarity),
+        }))
+        .filter((r) => r.similarity > 0.15); // 在 JS 侧做相似度过滤
+
+      console.log(
+        `🔎 向量搜索: ${rawVectorResults.length}条 → 过滤后${vectorResults.length}条`
+      );
+    } catch (e) {
+      console.warn("⚠️ 向量搜索失败:", e);
+    }
+
+    // 2b. 关键词搜索
     let keywordResults: Array<{
       id: number;
       content: string;
@@ -58,26 +174,58 @@ export async function POST(req: NextRequest) {
       sendTime: Date;
     }> = [];
 
-    if (keywords.length > 0) {
-      // 构建 OR 条件的模糊搜索
-      const keywordConditions = keywords
-        .map((kw) => `content ILIKE '%${kw.replace(/'/g, "''")}%'`)
-        .join(" OR ");
+    try {
+      const keywords = extractKeywords(message);
+      if (keywords.length > 0) {
+        // 使用参数化查询防止 SQL 注入，用 Prisma 的 $queryRaw
+        const likePattern = `%${keywords.join("%")}%`;
+        keywordResults = (
+          await prisma.$queryRaw<any[]>`
+          SELECT id, content, sender, "sendTime"
+          FROM chat_messages
+          WHERE content ILIKE ${likePattern}
+          ORDER BY "sendTime" DESC
+          LIMIT 8
+        `
+        ).map((r) => ({
+          id: Number(r.id),
+          content: r.content,
+          sender: r.sender,
+          sendTime: r.sendTime,
+        }));
 
-      keywordResults = await prisma.$queryRawUnsafe(`
-        SELECT id, content, sender, "sendTime"
-        FROM chat_messages
-        WHERE ${keywordConditions}
-        ORDER BY "sendTime" DESC
-        LIMIT 8
-      `);
+        // 如果单个模式匹配不够，逐个关键词也搜索一下
+        if (keywordResults.length < 3) {
+          for (const kw of keywords.slice(0, 3)) {
+            const kwPattern = `%${kw}%`;
+            const moreResults: any[] = await prisma.$queryRaw`
+              SELECT id, content, sender, "sendTime"
+              FROM chat_messages
+              WHERE content ILIKE ${kwPattern}
+              ORDER BY "sendTime" DESC
+              LIMIT 4
+            `;
+            for (const r of moreResults) {
+              keywordResults.push({
+                id: Number(r.id),
+                content: r.content,
+                sender: r.sender,
+                sendTime: r.sendTime,
+              });
+            }
+          }
+        }
+
+        console.log(`🔑 关键词搜索: ${keywordResults.length}条`);
+      }
+    } catch (e) {
+      console.warn("⚠️ 关键词搜索失败:", e);
     }
 
-    // 2c. 合并去重（向量结果 + 关键词结果）
+    // 2c. 合并去重
     const seenIds = new Set<number>();
     const allCandidates: MemoryCandidate[] = [];
 
-    // 先加入向量搜索结果
     for (const r of vectorResults) {
       if (!seenIds.has(r.id)) {
         seenIds.add(r.id);
@@ -92,7 +240,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 再加入关键词搜索结果（给一个默认相似度）
     for (const r of keywordResults) {
       if (!seenIds.has(r.id)) {
         seenIds.add(r.id);
@@ -101,25 +248,57 @@ export async function POST(req: NextRequest) {
           content: r.content,
           sender: r.sender,
           sendTime: r.sendTime,
-          similarity: 0.4, // 关键词匹配的默认相似度
+          similarity: 0.4,
           source: "keyword",
         });
       }
     }
 
-    console.log(
-      `📊 检索结果: 向量=${vectorResults.length}条, 关键词=${keywordResults.length}条, 合并去重=${allCandidates.length}条`
-    );
+    console.log(`📊 合并去重后候选: ${allCandidates.length}条`);
 
     // ═══════════════════════════════════════════════════
     // 🏆 第三阶段：AI 智能重排序 (Rerank)
-    // 让 AI 从候选中挑出真正相关的记忆，过滤无关噪音
     // ═══════════════════════════════════════════════════
     let rankedMemories: RankedMemory[] = [];
 
     if (allCandidates.length > 0) {
-      rankedMemories = await rerankMemories(message, allCandidates);
-      console.log(`✅ 重排序后保留 ${rankedMemories.length} 条相关记忆`);
+      try {
+        rankedMemories = await rerankMemories(message, allCandidates);
+        console.log(`✅ 重排序后保留 ${rankedMemories.length} 条相关记忆`);
+      } catch (e) {
+        console.warn("⚠️ 重排序失败，使用原始候选:", e);
+        // 降级：直接用相似度最高的前5条
+        rankedMemories = allCandidates
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, 5)
+          .map((c) => ({
+            content: c.content,
+            sender: c.sender,
+            sendTime: c.sendTime,
+            relevance: "medium" as const,
+            reason: "基于相似度排序",
+          }));
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 🔗 第三阶段增强：多跳推理 + 时间感知
+    // ═══════════════════════════════════════════════════
+    try {
+      // 意图分类
+      const intent = classifyIntent(message);
+      console.log(`🎯 识别到问题类型: ${intent}`);
+
+      // 事实查询类问题启用多跳推理
+      if (intent === 'fact_query' && rankedMemories.length > 0) {
+        rankedMemories = await expandContextWithNeighbors(rankedMemories, prisma);
+        console.log(`🔗 多跳推理后扩展到 ${rankedMemories.length} 条记忆`);
+      }
+
+      // 时间感知调整
+      rankedMemories = adjustRelevanceByRecency(rankedMemories);
+    } catch (e) {
+      console.warn("⚠️ 多跳推理/时间感知处理失败:", e);
     }
 
     // 构建记忆上下文
@@ -136,52 +315,59 @@ export async function POST(req: NextRequest) {
         : "【无相关记忆】没有找到与问题相关的聊天记录。";
 
     // ═══════════════════════════════════════════════════
-    // 📒 第四阶段：获取辅助上下文（时光手账、生理期等）
+    // 📒 第四阶段：获取辅助上下文
     // ═══════════════════════════════════════════════════
 
-    // 获取最近的时光手账
-    const recentMoments = await prisma.moment.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
+    let momentsContext = "近期没有手账记录";
+    try {
+      const recentMoments = await prisma.moment.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      });
 
-    const momentsContext =
-      recentMoments.length > 0
-        ? recentMoments
+      if (recentMoments.length > 0) {
+        momentsContext = recentMoments
           .map(
             (m) =>
               `[${new Date(m.createdAt).toLocaleDateString("zh-CN")}] ${m.author} 记录了: ${m.content}`
           )
-          .join("\n")
-        : "近期没有手账记录";
+          .join("\n");
+      }
+    } catch (e) {
+      console.warn("⚠️ 获取手账失败:", e);
+    }
 
     // 生理期状态
-    const latestPeriod = await prisma.periodRecord.findFirst({
-      orderBy: { startDate: "desc" },
-    });
     let periodSystemPrompt = "";
+    try {
+      const latestPeriod = await prisma.periodRecord.findFirst({
+        orderBy: { startDate: "desc" },
+      });
 
-    if (latestPeriod) {
-      const diffTime =
-        new Date().getTime() - new Date(latestPeriod.startDate).getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 3600 * 24)) + 1;
+      if (latestPeriod) {
+        const diffTime =
+          new Date().getTime() - new Date(latestPeriod.startDate).getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 3600 * 24)) + 1;
 
-      if (diffDays > 0 && diffDays <= 28) {
-        const cycleDay = diffDays;
-        let phaseInfo = "";
-        if (cycleDay >= 1 && cycleDay <= 5)
-          phaseInfo = "月经期（可能身体虚弱、肚子痛、情绪敏感）";
-        else if (cycleDay >= 6 && cycleDay <= 13)
-          phaseInfo = "卵泡期（心情绝佳、精力充沛）";
-        else if (cycleDay >= 14 && cycleDay <= 16)
-          phaseInfo = "排卵期（体温微升）";
-        else phaseInfo = "黄体期/经前综合征期（可能容易疲惫、烦躁、易委屈）";
+        if (diffDays > 0 && diffDays <= 28) {
+          const cycleDay = diffDays;
+          let phaseInfo = "";
+          if (cycleDay >= 1 && cycleDay <= 5)
+            phaseInfo = "月经期（可能身体虚弱、肚子痛、情绪敏感）";
+          else if (cycleDay >= 6 && cycleDay <= 13)
+            phaseInfo = "卵泡期（心情绝佳、精力充沛）";
+          else if (cycleDay >= 14 && cycleDay <= 16)
+            phaseInfo = "排卵期（体温微升）";
+          else phaseInfo = "黄体期/经前综合征期（可能容易疲惫、烦躁、易委屈）";
 
-        periodSystemPrompt = `
+          periodSystemPrompt = `
 【隐藏状态 - 自然体现，不要直接提及】：
 今天是女友生理周期的第 ${cycleDay} 天，正处于「${phaseInfo}」。
 在回答中自然地体现对她身体状态的照顾，不要刻意提及生理期。`;
+        }
       }
+    } catch (e) {
+      console.warn("⚠️ 获取生理期数据失败:", e);
     }
 
     // ═══════════════════════════════════════════════════
@@ -199,8 +385,6 @@ export async function POST(req: NextRequest) {
       "星期六",
     ];
     const timeContext = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${weekDays[now.getDay()]} ${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-    const hasRelevantMemories = rankedMemories.length > 0;
 
     const systemPrompt = `你是"小七"，一对情侣的专属恋爱助手，性格温柔、幽默、贴心。
 当前时间: ${timeContext}
@@ -235,17 +419,22 @@ ${periodSystemPrompt}
 
     return NextResponse.json({
       answer: aiResponse,
-      // 可选：返回调试信息（生产环境可去掉）
       _debug: {
         expandedQuery,
         candidatesCount: allCandidates.length,
         relevantMemories: rankedMemories.length,
-        hasRelevantMemories,
       },
     });
   } catch (error) {
     console.error("Chat Error:", error);
-    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
+    // 即使出错也返回一个 answer 字段，保证前端能显示气泡
+    return NextResponse.json(
+      {
+        answer:
+          "抱歉，我的大脑暂时短路了 😵，请稍后再试一下～",
+      },
+      { status: 200 }
+    );
   }
 }
 
@@ -253,7 +442,6 @@ ${periodSystemPrompt}
 // 🔧 辅助函数：从用户问题中提取关键词用于模糊搜索
 // ═══════════════════════════════════════════════════
 function extractKeywords(text: string): string[] {
-  // 去除常见的疑问词和停用词
   const stopWords = new Set([
     "的",
     "了",
@@ -329,6 +517,5 @@ function extractKeywords(text: string): string[] {
     .split(" ")
     .filter((w) => w.length >= 2 && !stopWords.has(w));
 
-  // 去重并最多取5个关键词
   return [...new Set(words)].slice(0, 5);
 }

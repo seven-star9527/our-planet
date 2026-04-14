@@ -55,26 +55,29 @@ export async function expandQuery(userMessage: string): Promise<string> {
       messages: [
         {
           role: "system",
-          content: `你是一个搜索查询扩展助手。用户会输入一个关于情侣聊天记录的问题。
-你的任务是将这个问题扩展为一段丰富的搜索文本，包含：
-1. 原始问题的核心意图
-2. 相关的同义词和近义词
-3. 这类对话中可能出现的关键词和表达方式
-4. 相关的情感词汇
+          content: `你是一个情侣聊天记录搜索词优化专家。
+用户的输入可能很简短，你的任务是扩充相关的“关键词”和“同义词”，以提高检索命中率。
 
-直接输出扩展后的搜索文本，不要解释，不要用引号包裹，控制在100字以内。`
+【🚨核心规则】：
+1. 绝对不要输出解释、标号或“核心意图”等格式化文字！
+2. 想象这段对话在微信里会怎么聊，提取出可能出现的动词、名词、口语化表达。
+3. 直接输出一串以空格分隔的关键词即可，控制在 30 字以内。
+
+示例：
+用户输入："我们去哪里吃的火锅"
+你的输出："火锅 海底捞 毛肚 吃饭 餐厅 约会 辣 好吃"`
         },
         { role: "user", content: userMessage },
       ],
       model: "deepseek-chat",
-      temperature: 0.3, // 低温度，保证稳定性
-      max_tokens: 150,
+      temperature: 0.3,
+      max_tokens: 100,
     });
 
     return completion.choices[0].message.content || userMessage;
   } catch (error) {
     console.error("查询扩展失败，使用原始查询:", error);
-    return userMessage; // 失败时回退到原始查询
+    return userMessage;
   }
 }
 
@@ -175,13 +178,13 @@ export async function rerankMemories(
 function fallbackRank(candidates: MemoryCandidate[]): RankedMemory[] {
   return candidates
     .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 3)
-    .filter(c => c.similarity > 0.3) // 基础过滤
+    .slice(0, 3) // 取前3条，不强求绝对高分
+    .filter(c => c.similarity > 0.15) // 将底线从 0.3 降到 0.15
     .map(c => ({
       content: c.content,
       sender: c.sender,
       sendTime: c.sendTime,
-      relevance: c.similarity > 0.5 ? 'high' as const : 'medium' as const,
+      relevance: c.similarity > 0.3 ? 'high' as const : 'medium' as const, // 降低 high 的门槛
       reason: '基于向量相似度排序',
     }));
 }

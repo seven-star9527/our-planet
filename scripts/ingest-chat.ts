@@ -16,19 +16,21 @@ const CONFIG = {
   // JSON 文件路径
   jsonFile: 'wechat_history_0316.json',
   // 对话分段：两条消息间隔超过此时间(秒)视为新对话
-  segmentGapSeconds: 30 * 60, // 30 分钟
+  segmentGapSeconds: 5 * 60, // 5 分钟（微信聊天通常5分钟内连续消息才算同一对话）
   // 过滤：对话段最少消息条数
   minMessagesPerSegment: 1,
   // 过滤：对话段最少字符数
   minCharsPerSegment: 4,
   // 对话段最大消息条数 (过长的对话会被拆分，避免 embedding 截断)
-  maxMessagesPerSegment: 60,
+  maxMessagesPerSegment: 20, // 降低到20条，避免过长导致embedding截断
   // API 调用间隔 (毫秒)，防止触发速率限制
   apiDelayMs: 200,
   // 失败重试次数
   maxRetries: 3,
   // 需要处理的消息类型
   validTypes: ['文本消息', '引用消息', '位置消息'],
+  // 启用智能分段：识别连续对话主题
+  enableSmartSegment: true,
 };
 
 // ========== 初始化 ==========

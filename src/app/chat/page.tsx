@@ -34,11 +34,15 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg }),
       });
-      
+
       const data = await res.json();
-      
+
       if (data.answer) {
         setMessages(prev => [...prev, { role: 'ai', content: data.answer }]);
+      } else if (data.error) {
+        setMessages(prev => [...prev, { role: 'ai', content: `出了点小问题：${data.error} 😣` }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'ai', content: "小七暂时没听懂，再说一次吧～ 😅" }]);
       }
     } catch (error) {
       setMessages(prev => [...prev, { role: 'ai', content: "网络有点小问题，请稍后再试 😣" }]);
@@ -61,7 +65,7 @@ export default function ChatPage() {
             🤖 小七同学
           </h1>
         </div>
-        
+
         {/* 右侧：状态标签 + 补充记忆入口 */}
         <div className="flex items-center gap-2">
           <span className="hidden md:inline-block text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full shadow-sm">
@@ -90,15 +94,15 @@ export default function ChatPage() {
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`
               max-w-[85%] md:max-w-[75%] p-3.5 text-sm md:text-base leading-relaxed shadow-sm
-              ${msg.role === 'user' 
-                ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white rounded-2xl rounded-tr-sm' 
+              ${msg.role === 'user'
+                ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white rounded-2xl rounded-tr-sm'
                 : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-tl-sm'}
             `}>
               {msg.content}
             </div>
           </div>
         ))}
-        
+
         {loading && (
           <div className="flex justify-start">
             <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm p-3.5 shadow-sm flex items-center gap-2">
@@ -126,10 +130,10 @@ export default function ChatPage() {
               }
             }}
             placeholder="问问 小七 以前发生的事..."
-            className="flex-1 max-h-32 min-h-[44px] p-3 bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all text-sm resize-none"
+            className="flex-1 max-h-32 min-h-[44px] p-3 bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all text-sm resize-none text-gray-900 placeholder:text-gray-400"
             rows={1}
           />
-          <button 
+          <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
             className="h-[44px] bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-5 rounded-2xl font-bold hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 flex items-center justify-center"
