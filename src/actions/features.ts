@@ -24,12 +24,30 @@ export async function deleteMilestone(id: number) {
 // --- 恋爱清单逻辑 ---
 export async function createBucketItem(formData: FormData) {
   const title = formData.get('title') as string;
-  await prisma.bucketList.create({ data: { title } });
+  if (!title.trim()) return;
+  await prisma.bucketList.create({ data: { title: title.trim() } });
   revalidatePath('/bucket-list');
 }
 
 export async function updateBucketStatus(id: number, status: string) {
   await prisma.bucketList.update({ where: { id }, data: { status } });
+  revalidatePath('/bucket-list');
+}
+
+export async function deleteBucketItem(id: number) {
+  await prisma.bucketList.delete({ where: { id } });
+  revalidatePath('/bucket-list');
+}
+
+export async function editBucketItem(id: number, title: string) {
+  if (!title.trim()) return { success: false, error: '内容不能为空' };
+  await prisma.bucketList.update({ where: { id }, data: { title: title.trim() } });
+  revalidatePath('/bucket-list');
+  return { success: true };
+}
+
+export async function markBucketDone(id: number) {
+  await prisma.bucketList.update({ where: { id }, data: { status: 'DONE' } });
   revalidatePath('/bucket-list');
 }
 

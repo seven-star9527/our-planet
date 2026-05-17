@@ -11,26 +11,31 @@ export default async function PeriodPage() {
   const cookieStore = await cookies();
   const role = cookieStore.get('user_role')?.value;
 
-  // 获取设置：女主是否可见
   const visibilitySetting = await prisma.appSetting.findFirst({ where: { key: 'period_visible_to_girl' } });
   const isVisibleToGirl = visibilitySetting?.value === 'true';
 
-  // 权限拦截：如果是女主且未开启可见性，拦截回首页
   if (role === 'girl' && !isVisibleToGirl) {
     redirect('/');
   }
 
-  // 获取过去半年的记录用于预测
+  // 获取生理期设置
+  const durationSetting = await prisma.appSetting.findFirst({ where: { key: 'period_duration' } });
+  const cycleSetting = await prisma.appSetting.findFirst({ where: { key: 'period_cycle' } });
+  const periodDuration = parseInt(durationSetting?.value || '5', 10);
+  const periodCycle = parseInt(cycleSetting?.value || '28', 10);
+
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  
+
   const records = await prisma.periodRecord.findMany({
     where: { startDate: { gte: sixMonthsAgo } },
     orderBy: { startDate: 'desc' }
   });
 
-  // 将记录格式化传给客户端 (解决 Date 对象的序列化警告)
-  const formattedRecords = records.map(r => r.startDate.toISOString());
+  const formattedRecords = records.map(r => ({
+    startDate: r.startDate.toISOString(),
+    endDate: r.endDate?.toISOString() || null,
+  }));
 
   return (
     <div className="min-h-screen bg-rose-50/30 pb-20">
@@ -46,10 +51,12 @@ export default async function PeriodPage() {
       </div>
 
       <div className="max-w-lg mx-auto p-4 mt-2">
-        <PeriodClient 
-          records={formattedRecords} 
-          role={role || 'boy'} 
-          initialVisibility={isVisibleToGirl} 
+        <PeriodClient
+          records={formattedRecords}
+          role={role || 'boy'}
+          initialVisibility={isVisibleToGirl}
+          initialDuration={periodDuration}
+          initialCycle={periodCycle}
         />
       </div>
     </div>

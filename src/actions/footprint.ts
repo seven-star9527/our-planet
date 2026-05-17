@@ -31,7 +31,15 @@ export async function addFootprint(formData: FormData) {
   }
 }
 
-// 紧接在 addFootprint 函数下面加入这个：
+export async function deleteFootprint(id: number) {
+  try {
+    await prisma.footprint.delete({ where: { id } });
+    revalidatePath('/footprint');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: '删除失败' };
+  }
+}
 
 export async function updateFootprint(id: number, formData: FormData) {
   const city = formData.get('city') as string;

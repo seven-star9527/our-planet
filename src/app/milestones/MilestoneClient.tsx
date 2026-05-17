@@ -95,12 +95,21 @@ export default function MilestoneClient({ milestones }: { milestones: any[] }) {
                   <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm ${m.isCountdown ? 'bg-indigo-50 text-indigo-500 border border-indigo-100' : 'bg-pink-50 text-pink-500 border border-pink-100'}`}>
                     {m.isCountdown ? '倒数日' : '累计日'}
                   </span>
-                  {/* ✨ 修复：移动端永远可见的“编辑”按钮 */}
-                  <button 
-                    onClick={() => setEditingStone(m)} 
+                  {/* 编辑按钮 */}
+                  <button
+                    onClick={() => setEditingStone(m)}
                     className="text-[10px] text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-full font-medium active:scale-95 transition-all"
                   >
                     ✎ 编辑
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`确定要删除"${m.title}"吗？`)) return;
+                      await deleteMilestone(m.id);
+                    }}
+                    className="text-[10px] text-gray-400 bg-gray-100 hover:bg-red-50 hover:text-red-500 px-2 py-1 rounded-full font-medium active:scale-95 transition-all"
+                  >
+                    🗑️ 删除
                   </button>
                 </div>
                 <h3 className="text-lg font-bold text-gray-800">{m.title}</h3>

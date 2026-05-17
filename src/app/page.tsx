@@ -36,6 +36,8 @@ export default async function Home() {
   const bgOpacity = Number(getSetting('home_bg_opacity') || '1');
   const bgTone = Number(getSetting('home_bg_tone') || '0');
   const bgFit = getSetting('home_bg_fit') || 'cover';
+  const bgPosX = getSetting('home_bg_pos_x') || '50';
+  const bgPosY = getSetting('home_bg_pos_y') || '50';
 
   const splashConfig = {
     enabled: getSetting('splash_enabled') === 'true',
@@ -85,6 +87,7 @@ export default async function Home() {
             src={bgImage}
             alt="Background"
             className={`w-full h-full ${bgFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+            style={{ objectPosition: `${bgPosX}% ${bgPosY}%` }}
           />
           {/* 深色蒙层 */}
           {bgTone > 0 && (

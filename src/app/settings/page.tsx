@@ -14,6 +14,8 @@ export default function SettingsPage() {
   const [bgOpacity, setBgOpacity] = useState(1);
   const [bgTone, setBgTone] = useState(0); // 0 = 无蒙层, 1 = 纯黑
   const [bgFit, setBgFit] = useState('cover');
+  const [bgPosX, setBgPosX] = useState(50); // 水平位置 0-100
+  const [bgPosY, setBgPosY] = useState(50); // 垂直位置 0-100
 
   // 开屏动画设置
   const [splashEnabled, setSplashEnabled] = useState(false);
@@ -46,6 +48,8 @@ export default function SettingsPage() {
         if (data.home_bg_opacity) setBgOpacity(Number(data.home_bg_opacity));
         if (data.home_bg_tone) setBgTone(Number(data.home_bg_tone));
         if (data.home_bg_fit) setBgFit(data.home_bg_fit);
+        if (data.home_bg_pos_x) setBgPosX(Number(data.home_bg_pos_x));
+        if (data.home_bg_pos_y) setBgPosY(Number(data.home_bg_pos_y));
 
         if (data.splash_enabled) setSplashEnabled(data.splash_enabled === 'true');
         if (data.splash_mode) setSplashMode(data.splash_mode);
@@ -75,6 +79,8 @@ export default function SettingsPage() {
         home_bg_opacity: bgOpacity.toString(),
         home_bg_tone: bgTone.toString(),
         home_bg_fit: bgFit,
+        home_bg_pos_x: bgPosX.toString(),
+        home_bg_pos_y: bgPosY.toString(),
         splash_enabled: splashEnabled.toString(),
         splash_mode: splashMode,
         splash_templates: splashTemplates.join(','),
@@ -243,6 +249,36 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* 图片位置调整 */}
+                {bgImage && (
+                  <div className="space-y-3 pt-2 border-t border-gray-100">
+                    <label className="text-xs font-bold text-gray-600 block">📐 图片位置微调</label>
+                    <div className="relative w-full h-32 rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+                      <img
+                        src={bgImage}
+                        alt="Position Preview"
+                        className="w-full h-full"
+                        style={{
+                          objectFit: bgFit as any,
+                          objectPosition: `${bgPosX}% ${bgPosY}%`,
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] text-gray-500">水平: {bgPosX}%</label>
+                      </div>
+                      <input type="range" min="0" max="100" step="1" value={bgPosX} onChange={(e) => setBgPosX(Number(e.target.value))} className="w-full accent-purple-500" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] text-gray-500">垂直: {bgPosY}%</label>
+                      </div>
+                      <input type="range" min="0" max="100" step="1" value={bgPosY} onChange={(e) => setBgPosY(Number(e.target.value))} className="w-full accent-purple-500" />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

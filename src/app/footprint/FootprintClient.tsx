@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react';
-import { addFootprint, updateFootprint } from '@/actions/footprint';
+import { addFootprint, updateFootprint, deleteFootprint } from '@/actions/footprint';
 import dynamic from 'next/dynamic';
 import * as echarts from 'echarts';
 
@@ -340,12 +340,22 @@ export default function FootprintClient({ cityData, rawData }: { cityData: any, 
                           {new Date(spot.date).toLocaleDateString()}
                         </span>
                       )}
-                      {/* ✨ 新增的编辑按钮 */}
+                      {/* 编辑按钮 */}
                       <button
                         onClick={() => setEditingSpot(spot)}
                         className="ml-2 text-[10px] text-gray-400 hover:text-emerald-500 bg-gray-100 hover:bg-emerald-50 px-2.5 py-1 rounded-full font-medium active:scale-95 transition-all"
                       >
                         编辑
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!confirm('确定要删除这个足迹吗？')) return;
+                          await deleteFootprint(spot.id);
+                          window.location.reload();
+                        }}
+                        className="ml-1 text-[10px] text-gray-400 hover:text-red-500 bg-gray-100 hover:bg-red-50 px-2.5 py-1 rounded-full font-medium active:scale-95 transition-all"
+                      >
+                        删除
                       </button>
                     </div>
                     {spot.notes && (

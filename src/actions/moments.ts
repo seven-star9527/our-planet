@@ -38,9 +38,21 @@ export async function createMoment(formData: FormData) {
     ? tagString.split(/[\s,，]+/).map(t => t.replace('#', '')).filter(Boolean) 
     : [];
 
-  await prisma.moment.create({
+  const newMoment = await prisma.moment.create({
     data: { content, author, images, videoUrl, tags },
   });
+
+  // 如果从恋爱清单跳转过来，关联并标记达成
+  const bucketIdStr = formData.get('bucketId') as string;
+  if (bucketIdStr) {
+    const bucketId = parseInt(bucketIdStr, 10);
+    if (!isNaN(bucketId)) {
+      await prisma.bucketList.update({
+        where: { id: bucketId },
+        data: { status: 'DONE', momentId: newMoment.id },
+      });
+    }
+  }
 
   redirect('/moments');
 }
