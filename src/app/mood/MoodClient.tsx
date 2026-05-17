@@ -25,7 +25,6 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [showStats, setShowStats] = useState(false);
-  const [iconShape, setIconShape] = useState<'round' | 'square'>('round');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const year = currentDate.getFullYear();
@@ -101,22 +100,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
 
   return (
     <div className="space-y-5">
-      {/* 模式切换 & 统计按钮 */}
-      <div className="flex justify-between items-center gap-2">
-        <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100">
-          <button
-            onClick={() => setIconShape('round')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${iconShape === 'round' ? 'bg-pink-100 text-pink-600 shadow-sm' : 'text-gray-400'}`}
-          >
-            ⭕ 圆形
-          </button>
-          <button
-            onClick={() => setIconShape('square')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${iconShape === 'square' ? 'bg-pink-100 text-pink-600 shadow-sm' : 'text-gray-400'}`}
-          >
-            🔲 方形
-          </button>
-        </div>
+      <div className="flex justify-end">
         <button
           onClick={() => setShowStats(!showStats)}
           className={`px-4 py-1.5 text-xs font-bold rounded-2xl transition-all ${showStats ? 'bg-purple-100 text-purple-600' : 'bg-white text-gray-500 border border-gray-100 shadow-sm'}`}
@@ -153,7 +137,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
 
         {/* 日期网格 */}
         <div className="grid grid-cols-7 gap-1.5">
-          {blanksArray.map(b => <div key={`blank-${b}`} className="aspect-square"></div>)}
+          {blanksArray.map(b => <div key={`blank-${b}`} className="min-h-[4.5rem]"></div>)}
           {daysArray.map(day => {
             const dayData = getDayData(day);
             const today = isToday(day);
@@ -161,33 +145,39 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
             const hasGirl = !!dayData.girl;
             const isSelected = selectedDay === day;
 
+            const boyMood = MOODS.find(m => m.key === dayData.boy?.mood);
+            const girlMood = MOODS.find(m => m.key === dayData.girl?.mood);
+
             return (
               <button
                 key={day}
                 onClick={() => handleDayClick(day)}
-                className={`relative aspect-square flex flex-col items-center justify-center rounded-2xl text-sm font-bold transition-all duration-200
-                  ${isSelected ? 'ring-2 ring-pink-400 ring-offset-1 scale-105' : ''}
+                className={`relative flex flex-col items-center justify-center rounded-2xl text-sm font-bold transition-all duration-200 py-1.5 gap-0.5
+                  ${isSelected ? 'ring-2 ring-pink-400 ring-offset-1 scale-105 z-10' : ''}
                   ${today ? 'border-2 border-pink-300' : 'border border-transparent'}
-                  ${hasBoy && hasGirl ? 'bg-gradient-to-br from-blue-100 to-pink-100' : hasBoy ? 'bg-blue-50' : hasGirl ? 'bg-pink-50' : 'bg-gray-50/50 text-gray-600 hover:bg-pink-50'}
+                  ${hasBoy && hasGirl ? 'bg-gradient-to-br from-blue-50 to-pink-50' : hasBoy ? 'bg-blue-50/60' : hasGirl ? 'bg-pink-50/60' : 'bg-gray-50/50 text-gray-600 hover:bg-pink-50/60'}
                   cursor-pointer active:scale-95
                 `}
               >
-                <span className={`z-10 ${today ? 'text-pink-500' : ''}`}>{day}</span>
-                <div className="flex gap-0.5 -mt-0.5">
-                  {hasBoy && (
-                    <div className={`${iconShape === 'round' ? 'rounded-full' : 'rounded-md'} w-5 h-5 flex items-center justify-center text-[10px] shadow-sm`}>
-                      {MOODS.find(m => m.key === dayData.boy!.mood)?.emoji}
-                    </div>
-                  )}
-                  {hasGirl && (
-                    <div className={`${iconShape === 'round' ? 'rounded-full' : 'rounded-md'} w-5 h-5 flex items-center justify-center text-[10px] shadow-sm`}>
-                      {MOODS.find(m => m.key === dayData.girl!.mood)?.emoji}
-                    </div>
+                <span className={`text-xs leading-none ${today ? 'text-pink-500' : ''}`}>{day}</span>
+                {/* 男生行 — 方形 */}
+                <div className="flex items-center gap-0.5">
+                  <span className="text-[9px] text-blue-400 w-3 text-center">♂</span>
+                  {boyMood ? (
+                    <span className="rounded-md w-5 h-5 flex items-center justify-center text-xs shadow-sm bg-white/60">{boyMood.emoji}</span>
+                  ) : (
+                    <span className="rounded-md w-5 h-5 border border-dashed border-gray-200 bg-white/40"></span>
                   )}
                 </div>
-                {!hasBoy && !hasGirl && (
-                  <div className="w-2 h-2 rounded-full opacity-0 group-hover:opacity-30 bg-gray-300 transition-opacity"></div>
-                )}
+                {/* 女生行 — 圆形 */}
+                <div className="flex items-center gap-0.5">
+                  <span className="text-[9px] text-pink-400 w-3 text-center">♀</span>
+                  {girlMood ? (
+                    <span className="rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-sm bg-white/60">{girlMood.emoji}</span>
+                  ) : (
+                    <span className="rounded-full w-5 h-5 border border-dashed border-gray-200 bg-white/40"></span>
+                  )}
+                </div>
               </button>
             );
           })}
