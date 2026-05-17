@@ -488,12 +488,13 @@ ${periodSystemPrompt}
       },
     });
   } catch (error) {
-    console.error("Chat Error:", error);
-    // 即使出错也返回一个 answer 字段，保证前端能显示气泡
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("Chat API Error:", detail, error);
     return NextResponse.json(
       {
         answer:
           "抱歉，我的大脑暂时短路了 😵，请稍后再试一下～",
+        _error: process.env.NODE_ENV === "development" ? detail : undefined,
       },
       { status: 200 }
     );

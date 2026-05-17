@@ -44,8 +44,10 @@ export async function chatWithDeepSeek(systemPrompt: string, userMessage: string
 
     return completion.choices[0].message.content;
   } catch (error) {
-    console.error("DeepSeek call failed:", error);
-    return "Sorry, I'm having a brain freeze, please try again...";
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("DeepSeek API call failed:", detail);
+    // 将具体错误抛出，让调用方统一处理
+    throw new Error(`DeepSeek API 调用失败: ${detail}`);
   }
 }
 

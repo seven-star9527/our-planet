@@ -3,7 +3,11 @@
     "allow": [
       "Bash(cd /d D:\\\\our-planet)",
       "Bash(npx tsc *)",
-      "Bash(docker compose *)"
+      "Bash(docker compose *)",
+      "Bash(xargs ls -t)",
+      "WebSearch",
+      "Bash(curl -s -w \"\\\\n%{http_code}\" https://api.deepseek.com/v1/models -H \"Authorization: Bearer sk-dcace9be12db4faca9b7b4d73edc2544\" --connect-timeout 10)",
+      "Bash(curl *)"
     ]
   }
 }
