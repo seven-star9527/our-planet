@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react';
-import { addComment, toggleLike, updateMoment } from '@/actions/moments'; // ✨ 引入 updateMoment
+import { useRouter } from 'next/navigation';
+import { addComment, toggleLike, updateMoment } from '@/actions/moments';
 
 export default function MomentCard({ moment, currentUser = "我" }: { moment: any, currentUser?: string }) {
   const [commentText, setCommentText] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
+  const router = useRouter();
 
   // ✨ 新增：用于控制全屏图片预览的状态
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -117,7 +119,7 @@ export default function MomentCard({ moment, currentUser = "我" }: { moment: an
             )}
             <div className="flex gap-2">
               {emojis.map(e => (
-                <button key={e} onClick={() => toggleLike(moment.id, e)} className="hover:scale-125 transition-transform text-lg">
+                <button key={e} onClick={async () => { await toggleLike(moment.id, e); router.refresh(); }} className="hover:scale-125 transition-transform text-lg">
                   {e}
                 </button>
               ))}
@@ -152,18 +154,20 @@ export default function MomentCard({ moment, currentUser = "我" }: { moment: an
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="说点什么吧..."
                 className="flex-1 text-sm p-2.5 px-4 bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-300 transition-all shadow-sm"
-                onKeyDown={(e) => {
+                onKeyDown={async (e) => {
                   if(e.key === 'Enter' && commentText.trim()) {
-                     addComment(moment.id, commentText);
+                     await addComment(moment.id, commentText);
                      setCommentText('');
+                     router.refresh();
                   }
                 }}
               />
-              <button 
-                onClick={() => {
+              <button
+                onClick={async () => {
                   if(commentText.trim()) {
-                    addComment(moment.id, commentText);
+                    await addComment(moment.id, commentText);
                     setCommentText('');
+                    router.refresh();
                   }
                 }}
                 disabled={!commentText.trim()}

@@ -12,20 +12,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '没有上传文件' }, { status: 400 });
   }
 
-  // File type validation
+  // File type validation (extension-based, with MIME as secondary check)
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.mov', '.webm'];
   const allowedTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
     'video/mp4', 'video/quicktime', 'video/webm',
   ];
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.mov', '.webm'];
-
-  if (!allowedTypes.includes(file.type)) {
-    return NextResponse.json({ error: '不支持的文件类型' }, { status: 400 });
-  }
 
   const ext = path.extname(file.name).toLowerCase();
   if (!allowedExtensions.includes(ext)) {
-    return NextResponse.json({ error: '不支持的文件扩展名' }, { status: 400 });
+    return NextResponse.json({ error: `不支持的文件类型: ${ext}` }, { status: 400 });
+  }
+
+  // MIME type is a secondary check — some browsers report empty or non-standard types
+  if (file.type && !allowedTypes.includes(file.type)) {
+    return NextResponse.json({ error: `不支持的文件格式: ${file.type}` }, { status: 400 });
   }
 
   // File size limit: 50MB
