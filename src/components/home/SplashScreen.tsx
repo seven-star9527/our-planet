@@ -13,34 +13,52 @@ interface SplashProps {
 }
 
 export default function SplashScreen({ config }: { config: SplashProps }) {
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
     const [timeLeft, setTimeLeft] = useState(config.duration || 5);
+    const [initialized, setInitialized] = useState(false);
 
     useEffect(() => {
-        // If the splash screen is disabled, just return right away
-        if (!config.enabled) {
+        // 检查是否已经在本会话中展示过开屏
+        const splashShown = sessionStorage.getItem('splash_shown');
+        if (!config.enabled || splashShown === 'true') {
             setIsVisible(false);
+            setInitialized(true);
             return;
         }
 
-        // Handle countdown mode
+        // 标记已展示
+        sessionStorage.setItem('splash_shown', 'true');
+        setIsVisible(true);
+        setInitialized(true);
+    }, [config.enabled]);
+
+    useEffect(() => {
+        if (!isVisible || !config.enabled) return;
+
         if (config.entryType === 'countdown') {
             if (timeLeft <= 0) {
                 handleEnter();
                 return;
             }
             const timer = setInterval(() => {
-                setTimeLeft(prev => prev - 1);
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        handleEnter();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [config.enabled, config.entryType, timeLeft]);
+    }, [isVisible, config.enabled, config.entryType, timeLeft]);
 
     const handleEnter = () => {
         setIsVisible(false);
     };
 
-    if (!isVisible) return null;
+    if (!initialized || !isVisible) return null;
 
     const selectedTemplates = config.templates.split(',').map(t => t.trim()).filter(Boolean);
 

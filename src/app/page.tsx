@@ -102,7 +102,7 @@ export default async function Home() {
         {/* 顶部 Banner */}
         <div className={`text-white pt-16 px-8 pb-32 shadow-lg relative overflow-hidden ${
           bgImage
-            ? 'bg-gradient-to-r from-pink-500/70 via-purple-500/70 to-indigo-500/70 backdrop-blur-sm'
+            ? 'bg-gradient-to-r from-pink-500/50 via-purple-500/50 to-indigo-500/50 backdrop-blur-sm'
             : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
         }`} style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
           <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/3"></div>

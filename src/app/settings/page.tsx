@@ -299,7 +299,7 @@ export default function SettingsPage() {
                 </div>
                 {/* Mini Banner */}
                 <div className={`absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 ${
-                  bgImage ? 'bg-gradient-to-r from-pink-500/70 via-purple-500/70 to-indigo-500/70 backdrop-blur-sm' : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
+                  bgImage ? 'bg-gradient-to-r from-pink-500/50 via-purple-500/50 to-indigo-500/50 backdrop-blur-sm' : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
                 }`} style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
                   <div className="text-base font-bold drop-shadow-sm">我们的专属星球 🌍</div>
                   {anniversaryDate && (

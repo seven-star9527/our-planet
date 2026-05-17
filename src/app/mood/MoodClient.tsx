@@ -51,13 +51,11 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
   // 以周一为起始日
   const blanksArray = Array.from({ length: firstDay === 0 ? 6 : firstDay - 1 }, (_, i) => i);
 
-  // 获取某一天的数据
+  // 获取某一天的数据 (用日期字符串比较，避免时区问题)
   const getDayData = (day: number) => {
-    const date = new Date(year, month - 1, day);
-    date.setHours(0, 0, 0, 0);
-    const dateTime = date.getTime();
-    const boyRecord = records.find(r => r.author === 'boy' && new Date(r.date).getTime() === dateTime);
-    const girlRecord = records.find(r => r.author === 'girl' && new Date(r.date).getTime() === dateTime);
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const boyRecord = records.find(r => r.author === 'boy' && r.date.startsWith(dateStr));
+    const girlRecord = records.find(r => r.author === 'girl' && r.date.startsWith(dateStr));
     return { boy: boyRecord, girl: girlRecord };
   };
 
@@ -78,22 +76,26 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
     if (!selectedMood || selectedDay === null) return;
     setIsSubmitting(true);
     const dateStr = new Date(year, month - 1, selectedDay).toISOString();
-    await setMood(dateStr, selectedMood, diaryText.trim() || undefined);
-    setSelectedDay(null);
+    const result = await setMood(dateStr, selectedMood, diaryText.trim() || undefined);
+    if (result.success) {
+      setSelectedDay(null);
+      await loadData();
+    }
     setIsSubmitting(false);
-    loadData();
   };
 
   const handleDelete = async () => {
     if (selectedDay === null) return;
     setIsSubmitting(true);
     const dateStr = new Date(year, month - 1, selectedDay).toISOString();
-    await deleteMood(dateStr);
-    setSelectedDay(null);
-    setSelectedMood('');
-    setDiaryText('');
+    const result = await deleteMood(dateStr);
+    if (result.success) {
+      setSelectedDay(null);
+      setSelectedMood('');
+      setDiaryText('');
+      await loadData();
+    }
     setIsSubmitting(false);
-    loadData();
   };
 
   const moodMeta = MOODS.find(m => m.key === selectedMood);
