@@ -132,6 +132,19 @@ model PeriodRecord {
   @@map("period_records")
 }
 
+// 心情日记
+model MoodRecord {
+  id        Int      @id @default(autoincrement())
+  author    String   // "boy" or "girl"
+  date      DateTime // 心情日期 (归一化到 00:00:00)
+  mood      String   // 心情标识: happy, love, calm, angry, sad, hurt, excited, tired
+  diary     String?  // 可选的日记内容
+  createdAt DateTime @default(now())
+
+  @@unique([author, date]) // 每人每天只能有一条心情
+  @@map("mood_records")
+}
+
 // npx prisma db push
 
 // 好感度与亲密度

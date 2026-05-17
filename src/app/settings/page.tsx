@@ -284,17 +284,42 @@ export default function SettingsPage() {
           </div>
 
           {/* 预览卡片 (保持不变) */}
-          {anniversaryDate && (
-            <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden animate-fade-in-up">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-              <h3 className="font-bold text-lg mb-2 relative z-10">✨ 预览效果</h3>
-              <p className="opacity-95 font-medium relative z-10">
-                在一起的第{' '}
-                <span className="font-bold text-2xl">
-                  {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))}
-                </span>
-                {' '}天
-              </p>
+          {/* 首页背景预览 */}
+          {bgImage && (
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
+              <div className="p-5 border-b border-gray-50">
+                <h2 className="font-bold text-gray-800 text-lg">✨ 首页效果预览</h2>
+                <p className="text-sm text-gray-500 mt-1">背景图+顶部Banner的实际效果</p>
+              </div>
+              <div className="relative h-56 overflow-hidden">
+                {/* 背景图层 */}
+                <div className="absolute inset-0" style={{ opacity: bgOpacity }}>
+                  <img src={bgImage} className="w-full h-full" style={{ objectFit: bgFit as any, objectPosition: `${bgPosX}% ${bgPosY}%` }} />
+                  {bgTone > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: bgTone }} />}
+                </div>
+                {/* Mini Banner */}
+                <div className={`absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 ${
+                  bgImage ? 'bg-gradient-to-r from-pink-500/70 via-purple-500/70 to-indigo-500/70 backdrop-blur-sm' : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
+                }`} style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
+                  <div className="text-base font-bold drop-shadow-sm">我们的专属星球 🌍</div>
+                  {anniversaryDate && (
+                    <div className="text-xs opacity-90 mt-1 font-medium">
+                      在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
+                    </div>
+                  )}
+                </div>
+                {/* Mini Cards */}
+                <div className="absolute bottom-4 left-4 right-4 flex gap-2" style={{ marginTop: '-20px' }}>
+                  <div className={`flex-1 ${bgImage ? 'bg-white/80 backdrop-blur-sm' : 'bg-white'} rounded-xl p-3 shadow-sm text-center`}>
+                    <div className="text-lg">📸</div>
+                    <div className="text-[10px] font-bold text-gray-500">时光手账</div>
+                  </div>
+                  <div className={`flex-1 ${bgImage ? 'bg-white/80 backdrop-blur-sm' : 'bg-white'} rounded-xl p-3 shadow-sm text-center`}>
+                    <div className="text-lg">😊</div>
+                    <div className="text-[10px] font-bold text-gray-500">心情日记</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -483,7 +508,7 @@ export default function SettingsPage() {
             <div className="p-5 text-center">
               <div className="text-4xl mb-2">🌍</div>
               <h2 className="font-black text-gray-800 text-lg mb-1">我们的专属星球</h2>
-              <p className="text-sm text-gray-600 mb-2 font-medium">v1.0.0</p>
+              <p className="text-sm text-gray-600 mb-2 font-medium">v2.0.0</p>
             </div>
           </div>
 

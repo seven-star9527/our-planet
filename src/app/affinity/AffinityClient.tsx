@@ -19,6 +19,8 @@ type ScoreData = {
 export default function AffinityClient({
     role,
     otherRole,
+    boyName,
+    girlName,
     myScore,
     theirScore,
     myLogs,
@@ -26,6 +28,8 @@ export default function AffinityClient({
 }: {
     role: string;
     otherRole: string;
+    boyName: string;
+    girlName: string;
     myScore: ScoreData;
     theirScore: ScoreData;
     myLogs: LogItem[];
@@ -35,8 +39,8 @@ export default function AffinityClient({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState<'mine' | 'theirs'>('mine');
 
-    const myName = role === 'boy' ? '我(男主)' : '我(女主)';
-    const theirName = otherRole === 'boy' ? '男主' : '女主';
+    const myName = role === 'boy' ? boyName : girlName;
+    const theirName = otherRole === 'boy' ? boyName : girlName;
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

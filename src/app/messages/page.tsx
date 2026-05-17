@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { getSettings } from '@/actions/settings';
 import MessageForm from '@/components/messages/MessageForm';
 
 export const dynamic = 'force-dynamic';
@@ -8,6 +9,9 @@ export const dynamic = 'force-dynamic';
 export default async function MessagesPage() {
     const cookieStore = await cookies();
     const role = cookieStore.get('user_role')?.value;
+    const settings = await getSettings();
+    const boyName = settings.boyName || '男生';
+    const girlName = settings.girlName || '女生';
 
     const messages = await prisma.homeMessage.findMany({
         orderBy: { createdAt: 'desc' }
@@ -53,7 +57,7 @@ export default async function MessagesPage() {
                                     </span>
                                     <div>
                                         <div className="text-xs font-bold text-gray-700">
-                                            {msg.sender === 'boy' ? '男生' : msg.sender === 'girl' ? '女生' : 'TA'}
+                                            {msg.sender === 'boy' ? boyName : msg.sender === 'girl' ? girlName : 'TA'}
                                         </div>
                                         <div className="text-[10px] text-gray-400">
                                             {msg.createdAt.toLocaleString()}

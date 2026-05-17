@@ -100,7 +100,11 @@ export default async function Home() {
       <div className="relative z-10">
 
         {/* 顶部 Banner */}
-        <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white pt-16 px-8 pb-32 shadow-lg relative overflow-hidden" style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
+        <div className={`text-white pt-16 px-8 pb-32 shadow-lg relative overflow-hidden ${
+          bgImage
+            ? 'bg-gradient-to-r from-pink-500/70 via-purple-500/70 to-indigo-500/70 backdrop-blur-sm'
+            : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
+        }`} style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
           <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/3"></div>
           <div className="absolute bottom-0 left-0 w-28 h-28 bg-white opacity-10 rounded-full translate-y-1/3 -translate-x-1/4"></div>
 
@@ -148,16 +152,22 @@ export default async function Home() {
 
           {/* 核心功能卡片网格 */}
           <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <Link href="/moments" className="bg-white p-5 md:p-6 rounded-3xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-100/50">
-              <div className="text-3xl md:text-4xl mb-3 drop-shadow-sm">📸</div>
+            <Link href="/moments" className="bg-white p-5 md:p-6 rounded-3xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-100/50 group">
+              <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center text-2xl mb-3 group-hover:animate-gentle-bounce shadow-sm">📸</div>
               <div className="font-bold text-gray-800 text-sm md:text-base">时光手账</div>
               <div className="text-xs text-gray-400 mt-1">记录日常点滴</div>
             </Link>
 
-            <Link href="/bucket-list" className="bg-white p-5 md:p-6 rounded-3xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-100/50">
-              <div className="text-3xl md:text-4xl mb-3 drop-shadow-sm">📝</div>
+            <Link href="/bucket-list" className="bg-white p-5 md:p-6 rounded-3xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-100/50 group">
+              <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center text-2xl mb-3 group-hover:animate-gentle-bounce shadow-sm">📝</div>
               <div className="font-bold text-gray-800 text-sm md:text-base">恋爱清单</div>
               <div className="text-xs text-gray-400 mt-1">还有 {bucketCount} 个愿望</div>
+            </Link>
+
+            <Link href="/mood" className="bg-white p-5 md:p-6 rounded-3xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-100/50 group">
+              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-2xl mb-3 group-hover:animate-gentle-bounce shadow-sm">😊</div>
+              <div className="font-bold text-gray-800 text-sm md:text-base">心情日记</div>
+              <div className="text-xs text-gray-400 mt-1">记录每日心情</div>
             </Link>
           </div>
 
@@ -179,20 +189,20 @@ export default async function Home() {
 
           {/* ✨ 修改：快捷操作区域 (改成4列，加入留言板) */}
           <div className="grid grid-cols-4 gap-2">
-            <Link href="/messages" className="bg-white p-3 md:p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center">
-              <div className="text-2xl mb-1.5 drop-shadow-sm">💌</div>
+            <Link href="/messages" className="bg-white p-3 md:p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center group">
+              <div className="w-10 h-10 bg-rose-50 rounded-full flex items-center justify-center text-lg mb-1.5 group-hover:animate-wiggle shadow-sm">💌</div>
               <div className="text-[11px] md:text-xs text-gray-700 font-medium whitespace-nowrap">留言板</div>
             </Link>
-            <Link href="/footprint" className="bg-white p-3 md:p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center">
-              <div className="text-2xl mb-1.5 drop-shadow-sm">🗺️</div>
+            <Link href="/footprint" className="bg-white p-3 md:p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center group">
+              <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center text-lg mb-1.5 group-hover:animate-wiggle shadow-sm">🗺️</div>
               <div className="text-xs text-gray-700 font-medium">点亮足迹</div>
             </Link>
-            <Link href="/moments/new" className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center">
-              <div className="text-2xl mb-1.5 drop-shadow-sm">✨</div>
+            <Link href="/moments/new" className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center group">
+              <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-lg mb-1.5 group-hover:animate-wiggle shadow-sm">✨</div>
               <div className="text-xs text-gray-700 font-medium">记录瞬间</div>
             </Link>
-            <Link href="/settings" className="bg-white p-3 md:p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center">
-              <div className="text-2xl mb-1.5 drop-shadow-sm">⚙️</div>
+            <Link href="/settings" className="bg-white p-3 md:p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100/50 flex flex-col items-center justify-center group">
+              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-lg mb-1.5 group-hover:animate-wiggle shadow-sm">⚙️</div>
               <div className="text-[11px] md:text-xs text-gray-700 font-medium whitespace-nowrap">设置</div>
             </Link>
             {showPeriodTracker && (

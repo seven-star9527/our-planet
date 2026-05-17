@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { getSettings } from '@/actions/settings';
 import AffinityClient from './AffinityClient';
 
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,9 @@ export default async function AffinityPage() {
     const cookieStore = await cookies();
     const role = cookieStore.get('user_role')?.value || 'boy';
     const otherRole = role === 'boy' ? 'girl' : 'boy';
+    const settings = await getSettings();
+    const boyName = settings.boyName || '男主';
+    const girlName = settings.girlName || '女主';
 
     // 获取"我给对方"的分数
     let myScore = await prisma.affinityScore.findUnique({
@@ -60,6 +64,8 @@ export default async function AffinityPage() {
                 <AffinityClient
                     role={role}
                     otherRole={otherRole}
+                    boyName={boyName}
+                    girlName={girlName}
                     myScore={{ favorability: myScore.favorability, intimacy: myScore.intimacy }}
                     theirScore={{ favorability: theirScore.favorability, intimacy: theirScore.intimacy }}
                     myLogs={myLogs.map((l: any) => ({
