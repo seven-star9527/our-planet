@@ -12,6 +12,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '没有上传文件' }, { status: 400 });
   }
 
+  // File type validation
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'video/mp4', 'video/quicktime', 'video/webm',
+  ];
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.mov', '.webm'];
+
+  if (!allowedTypes.includes(file.type)) {
+    return NextResponse.json({ error: '不支持的文件类型' }, { status: 400 });
+  }
+
+  const ext = path.extname(file.name).toLowerCase();
+  if (!allowedExtensions.includes(ext)) {
+    return NextResponse.json({ error: '不支持的文件扩展名' }, { status: 400 });
+  }
+
+  // File size limit: 50MB
+  const maxSize = 50 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return NextResponse.json({ error: '文件大小不能超过 50MB' }, { status: 400 });
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = Date.now() + '_' + Math.floor(Math.random() * 1000) + path.extname(file.name);
 

@@ -124,7 +124,7 @@ export default function FootprintClient({ cityData, rawData }: { cityData: any, 
           setMapLoaded(true);
           return;
         } catch (err) {
-          console.warn(`地图加载失败(${url}):`, err);
+          if (process.env.NODE_ENV !== 'production') console.warn(`地图加载失败(${url}):`, err);
         }
       }
       console.error('所有地图 CDN 均加载失败');

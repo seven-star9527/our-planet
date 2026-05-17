@@ -8,6 +8,7 @@ import {
   MemoryCandidate,
   RankedMemory,
 } from "@/lib/ai";
+import { logger } from "@/lib/logger";
 
 // ========== 意图分类 ==========
 type IntentType = 'fact_query' | 'emotion_support' | 'advice_request' | 'casual_chat';
@@ -51,17 +52,24 @@ async function expandContextWithNeighbors(
   const addedIds = new Set(memories.map(m => m.content.substring(0, 100)));
 
   // 对于每条高相关记忆，尝试找相邻的记忆（时间上接近的）
-  for (const mem of memories.slice(0, 3)) { // 只处理前3条，避免过度扩展
+  const topMemories = memories.filter(m => m.relevance === 'high').slice(0, 5);
+  if (topMemories.length === 0) {
+    // 如果没有 high 的，对 medium 的也做扩展
+    topMemories.push(...memories.filter(m => m.relevance === 'medium').slice(0, 3));
+  }
+
+  for (const mem of topMemories) {
     try {
       const memTime = new Date(mem.sendTime);
-      const timeWindow = 30 * 60 * 1000; // 30分钟内
+      // 扩大时间窗口到 1 小时，捕获更多上下文
+      const timeWindow = 60 * 60 * 1000;
 
       const neighbors = await prisma.$queryRaw<any[]>`
         SELECT content, sender, "sendTime"
         FROM chat_messages
         WHERE "sendTime" BETWEEN ${new Date(memTime.getTime() - timeWindow)} AND ${new Date(memTime.getTime() + timeWindow)}
         ORDER BY ABS(EXTRACT(EPOCH FROM ("sendTime" - ${memTime})))
-        LIMIT 2
+        LIMIT 3
       `;
 
       for (const n of neighbors) {
@@ -82,7 +90,7 @@ async function expandContextWithNeighbors(
     }
   }
 
-  return expanded.slice(0, 8); // 最多返回8条
+  return expanded.slice(0, 10); // 最多返回10条
 }
 
 // ========== 时间感知权重调整 ==========
@@ -102,24 +110,49 @@ function adjustRelevanceByRecency(memories: RankedMemory[]): RankedMemory[] {
   });
 }
 
+// 简单的内存会话存储 (生产环境应使用 Redis 等方案)
+const sessionStore = new Map<string, Array<{ role: string; content: string }>>();
+const SESSION_MAX_MESSAGES = 10;
+
 export async function POST(req: NextRequest) {
   try {
-    const { message } = await req.json();
+    const { message, sessionId, history: clientHistory } = await req.json();
 
     if (!message) {
       return NextResponse.json({ error: "请输入内容" }, { status: 400 });
     }
 
+    // 会话管理
+    const sid = sessionId || "default";
+    if (!sessionStore.has(sid)) {
+      sessionStore.set(sid, []);
+    }
+    const sessionHistory = sessionStore.get(sid)!;
+
+    // 合并客户端传来的历史
+    const conversationHistory = clientHistory || sessionHistory;
+
+    // 将当前消息加入历史（异步保留）
+    sessionHistory.push({ role: "user", content: message });
+    if (sessionHistory.length > SESSION_MAX_MESSAGES) {
+      sessionHistory.splice(0, sessionHistory.length - SESSION_MAX_MESSAGES);
+    }
+
+    // 构建对话历史文本，补充检索上下文
+    const historyText = conversationHistory.length > 0
+      ? conversationHistory.slice(-6).map((m: any) => `${m.role === "user" ? "对方" : "小七"}: ${m.content}`).join("\n")
+      : "";
+
     // ═══════════════════════════════════════════════════
     // 🧠 第一阶段：智能查询扩展 (Query Expansion)
     // ═══════════════════════════════════════════════════
-    let expandedQuery = message; // 默认使用原始消息
+    let expandedQuery = message;
     try {
       expandedQuery = await expandQuery(message);
-      console.log(`📝 原始问题: "${message}"`);
-      console.log(`🔍 扩展查询: "${expandedQuery}"`);
+      logger.log(`📝 原始问题: "${message}"`);
+      logger.log(`🔍 扩展查询: "${expandedQuery}"`);
     } catch (e) {
-      console.warn("⚠️ 查询扩展失败，使用原始问题:", e);
+      logger.warn("⚠️ 查询扩展失败，使用原始问题:", e);
     }
 
     // ═══════════════════════════════════════════════════
@@ -148,7 +181,6 @@ export async function POST(req: NextRequest) {
         LIMIT 15
       `;
 
-      // Prisma 返回的 numeric 类型是 Decimal 对象，需要转为 number
       vectorResults = rawVectorResults
         .map((r) => ({
           id: Number(r.id),
@@ -157,13 +189,13 @@ export async function POST(req: NextRequest) {
           sendTime: r.sendTime,
           similarity: Number(r.similarity),
         }))
-        .filter((r) => r.similarity > 0.15); // 在 JS 侧做相似度过滤
+        .filter((r) => r.similarity > 0.15);
 
-      console.log(
+      logger.log(
         `🔎 向量搜索: ${rawVectorResults.length}条 → 过滤后${vectorResults.length}条`
       );
     } catch (e) {
-      console.warn("⚠️ 向量搜索失败:", e);
+      logger.warn("⚠️ 向量搜索失败:", e);
     }
 
     // 2b. 关键词搜索
@@ -216,45 +248,66 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        console.log(`🔑 关键词搜索: ${keywordResults.length}条`);
+        logger.log(`🔑 关键词搜索: ${keywordResults.length}条`);
       }
     } catch (e) {
-      console.warn("⚠️ 关键词搜索失败:", e);
+      logger.warn("⚠️ 关键词搜索失败:", e);
     }
 
-    // 2c. 合并去重
-    const seenIds = new Set<number>();
-    const allCandidates: MemoryCandidate[] = [];
+    // 2c. 使用 RRF (Reciprocal Rank Fusion) 合并去重
+    // RRF 能有效融合不同来源的排序结果，无需手动调权重
+    const RRF_K = 60; // RRF 常数
+
+    const vectorRankMap = new Map<number, number>();
+    vectorResults.forEach((r, i) => vectorRankMap.set(r.id, i + 1));
+
+    const keywordRankMap = new Map<number, number>();
+    keywordResults.forEach((r, i) => keywordRankMap.set(r.id, i + 1));
+
+    const rrfScores = new Map<number, { score: number; id: number; content: string; sender: string; sendTime: Date; similarity: number }>();
 
     for (const r of vectorResults) {
-      if (!seenIds.has(r.id)) {
-        seenIds.add(r.id);
-        allCandidates.push({
-          id: r.id,
-          content: r.content,
-          sender: r.sender,
-          sendTime: r.sendTime,
-          similarity: r.similarity,
-          source: "vector",
-        });
-      }
+      const vecRank = vectorRankMap.get(r.id) || 999;
+      const kwRank = keywordRankMap.get(r.id) || 999;
+      const rrfScore = 1 / (RRF_K + vecRank) + 1 / (RRF_K + kwRank);
+      rrfScores.set(r.id, {
+        score: rrfScore,
+        id: r.id,
+        content: r.content,
+        sender: r.sender,
+        sendTime: r.sendTime,
+        similarity: r.similarity,
+      });
     }
 
     for (const r of keywordResults) {
-      if (!seenIds.has(r.id)) {
-        seenIds.add(r.id);
-        allCandidates.push({
-          id: r.id,
-          content: r.content,
-          sender: r.sender,
-          sendTime: r.sendTime,
-          similarity: 0.4,
-          source: "keyword",
-        });
-      }
+      if (rrfScores.has(r.id)) continue; // 已在向量结果中
+      const vecRank = 999;
+      const kwRank = keywordRankMap.get(r.id) || 999;
+      const rrfScore = 1 / (RRF_K + vecRank) + 1 / (RRF_K + kwRank);
+      rrfScores.set(r.id, {
+        score: rrfScore,
+        id: r.id,
+        content: r.content,
+        sender: r.sender,
+        sendTime: r.sendTime,
+        similarity: 0.3, // 纯关键词匹配给一个基础相似度
+      });
     }
 
-    console.log(`📊 合并去重后候选: ${allCandidates.length}条`);
+    // 按 RRF 分数降序排列
+    const allCandidates: MemoryCandidate[] = Array.from(rrfScores.values())
+      .sort((a, b) => b.score - a.score)
+      .map((r) => ({
+        id: r.id,
+        content: r.content,
+        sender: r.sender,
+        sendTime: r.sendTime,
+        similarity: r.similarity,
+        source: (vectorRankMap.has(r.id) ? "vector" : "keyword") as "vector" | "keyword",
+      }));
+
+    logger.log(`📊 RRF合并后候选: ${allCandidates.length}条`);
 
     // ═══════════════════════════════════════════════════
     // 🏆 第三阶段：AI 智能重排序 (Rerank)
@@ -264,9 +317,9 @@ export async function POST(req: NextRequest) {
     if (allCandidates.length > 0) {
       try {
         rankedMemories = await rerankMemories(message, allCandidates);
-        console.log(`✅ 重排序后保留 ${rankedMemories.length} 条相关记忆`);
+        logger.log(`✅ 重排序后保留 ${rankedMemories.length} 条相关记忆`);
       } catch (e) {
-        console.warn("⚠️ 重排序失败，使用原始候选:", e);
+        logger.warn("⚠️ 重排序失败，使用原始候选:", e);
         // 降级：直接用相似度最高的前5条
         rankedMemories = allCandidates
           .sort((a, b) => b.similarity - a.similarity)
@@ -287,18 +340,18 @@ export async function POST(req: NextRequest) {
     try {
       // 意图分类
       const intent = classifyIntent(message);
-      console.log(`🎯 识别到问题类型: ${intent}`);
+      logger.log(`🎯 识别到问题类型: ${intent}`);
 
       // 事实查询类问题启用多跳推理
       if (intent === 'fact_query' && rankedMemories.length > 0) {
         rankedMemories = await expandContextWithNeighbors(rankedMemories, prisma);
-        console.log(`🔗 多跳推理后扩展到 ${rankedMemories.length} 条记忆`);
+        logger.log(`🔗 多跳推理后扩展到 ${rankedMemories.length} 条记忆`);
       }
 
       // 时间感知调整
       rankedMemories = adjustRelevanceByRecency(rankedMemories);
     } catch (e) {
-      console.warn("⚠️ 多跳推理/时间感知处理失败:", e);
+      logger.warn("⚠️ 多跳推理/时间感知处理失败:", e);
     }
 
     // 构建记忆上下文
@@ -334,7 +387,7 @@ export async function POST(req: NextRequest) {
           .join("\n");
       }
     } catch (e) {
-      console.warn("⚠️ 获取手账失败:", e);
+      logger.warn("⚠️ 获取手账失败:", e);
     }
 
     // 生理期状态
@@ -367,7 +420,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (e) {
-      console.warn("⚠️ 获取生理期数据失败:", e);
+      logger.warn("⚠️ 获取生理期数据失败:", e);
     }
 
     // ═══════════════════════════════════════════════════
@@ -403,6 +456,7 @@ export async function POST(req: NextRequest) {
 
 3. 回答风格：轻松、温柔、有人情味，适当使用 emoji
 
+${historyText ? `═══════ 【近期对话上下文】 ═══════\n${historyText}\n` : ""}
 ═══════ 【检索到的相关记忆片段】 ═══════
 ${memoryContext}
 
@@ -417,12 +471,20 @@ ${periodSystemPrompt}
     // ═══════════════════════════════════════════════════
     const aiResponse = await chatWithDeepSeek(systemPrompt, message);
 
+    // 将AI回复也存入会话历史
+    sessionHistory.push({ role: "assistant", content: aiResponse || "" });
+    if (sessionHistory.length > SESSION_MAX_MESSAGES) {
+      sessionHistory.splice(0, sessionHistory.length - SESSION_MAX_MESSAGES);
+    }
+
     return NextResponse.json({
       answer: aiResponse,
       _debug: {
         expandedQuery,
         candidatesCount: allCandidates.length,
         relevantMemories: rankedMemories.length,
+        vectorResultsCount: vectorResults.length,
+        keywordResultsCount: keywordResults.length,
       },
     });
   } catch (error) {
@@ -440,82 +502,61 @@ ${periodSystemPrompt}
 
 // ═══════════════════════════════════════════════════
 // 🔧 辅助函数：从用户问题中提取关键词用于模糊搜索
+// 针对中文优化：使用字符 bigram + 智能分词
 // ═══════════════════════════════════════════════════
 function extractKeywords(text: string): string[] {
+  // 停用词：仅保留真正的语法虚词，去掉会影响记忆检索的动词
   const stopWords = new Set([
-    "的",
-    "了",
-    "吗",
-    "呢",
-    "吧",
-    "啊",
-    "呀",
-    "哦",
-    "嘛",
-    "是",
-    "在",
-    "有",
-    "和",
-    "与",
-    "或",
-    "我",
-    "你",
-    "他",
-    "她",
-    "它",
-    "我们",
-    "你们",
-    "他们",
-    "这",
-    "那",
-    "什么",
-    "怎么",
-    "如何",
-    "为什么",
-    "哪",
-    "哪里",
-    "哪些",
-    "几",
-    "多少",
-    "多",
-    "很",
-    "非常",
-    "比较",
-    "最",
-    "都",
-    "也",
-    "还",
-    "就",
-    "才",
-    "会",
-    "能",
-    "可以",
-    "要",
-    "想",
-    "去",
-    "来",
-    "到",
-    "过",
-    "说",
-    "说过",
-    "记得",
-    "知道",
-    "一起",
-    "一个",
-    "一些",
-    "不",
-    "没",
-    "没有",
-    "请",
-    "告诉",
-    "问",
+    "的", "了", "吗", "呢", "吧", "啊", "呀", "哦", "嘛", "嗯",
+    "是", "在", "有", "和", "与", "或",
+    "我", "你", "他", "她", "它", "我们", "你们", "他们",
+    "这", "那", "这个", "那个", "这些", "那些",
+    "什么", "怎么", "如何", "为什么", "哪", "哪里", "哪些",
+    "几", "多少", "多",
+    "很", "非常", "比较", "最",
+    "都", "也", "还", "就", "才", "把", "被", "让",
+    "会", "能", "可以", "要", "想", "应该", "可能",
+    "去", "来", "到",
+    "一个", "一些", "一下", "一种",
+    "不", "没", "没有",
+    "请", "问", "帮", "给",
   ]);
 
-  // 简单分词：按标点和空格分割，保留2字以上的词
-  const words = text
-    .replace(/[？?！!，。、；：""''（）【】《》\s]/g, " ")
-    .split(" ")
-    .filter((w) => w.length >= 2 && !stopWords.has(w));
+  const keywords: string[] = [];
 
-  return [...new Set(words)].slice(0, 5);
+  // 策略 1：提取 2-4 字的连续中文字符作为 bigram/trigram
+  const chineseOnly = text.replace(/[^一-龥]/g, "");
+  for (let len = 4; len >= 2; len--) {
+    for (let i = 0; i <= chineseOnly.length - len; i++) {
+      const gram = chineseOnly.substring(i, i + len);
+      if (!stopWords.has(gram) && gram.length >= 2) {
+        keywords.push(gram);
+      }
+    }
+  }
+
+  // 策略 2：按标点分割后提取有意义的完整词组
+  const segments = text
+    .replace(/[？?！!，。、；：""''（）【】《》\s]+/g, " ")
+    .split(" ")
+    .filter((w) => w.length >= 2);
+
+  for (const seg of segments) {
+    // 移除停用词字符后再判断
+    let cleaned = seg;
+    for (const sw of stopWords) {
+      cleaned = cleaned.replace(new RegExp(sw, "g"), "");
+    }
+    if (cleaned.length >= 2 && !keywords.includes(seg)) {
+      keywords.push(seg);
+    }
+  }
+
+  // 去重并按长度降序排列（更长的词更精准）
+  const unique = [...new Set(keywords)]
+    .filter((k) => k.length >= 2)
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 8);
+
+  return unique;
 }

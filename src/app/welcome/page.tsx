@@ -14,7 +14,7 @@ export default function WelcomeAnimationPage() {
     
     if (audioRef.current) {
       audioRef.current.volume = 0.4;
-      audioRef.current.play().catch(e => console.log("浏览器限制自动播放", e));
+      audioRef.current.play().catch(() => { /* browser autoplay policy */ });
     }
 
     const canvas = canvasRef.current;

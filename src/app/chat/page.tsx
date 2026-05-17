@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 // 定义消息类型
@@ -9,11 +9,19 @@ type Message = {
   content: string;
 };
 
+// 生成唯一会话 ID
+function generateSessionId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+}
+
 export default function ChatPage() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 会话 ID 在页面生命周期内保持不变
+  const sessionId = useMemo(() => generateSessionId(), []);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -23,16 +31,23 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
-    const userMsg = input;
+    const userMsg: Message = { role: 'user', content: input };
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    const currentMessages: Message[] = [...messages, userMsg];
+    setMessages(currentMessages);
     setLoading(true);
+
+    // Build conversation history for backend
+    const history = currentMessages.slice(-10).map(m => ({
+      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+      content: m.content,
+    }));
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg }),
+        body: JSON.stringify({ message: userMsg, sessionId, history }),
       });
 
       const data = await res.json();

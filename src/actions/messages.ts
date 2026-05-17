@@ -39,29 +39,13 @@ export async function createMessage(data: {
 
 export async function getActiveMessages() {
     try {
-        const now = new Date();
-        // Get all messages where duration is 0 (permanent) or where current time is less than showAt + duration
-        // prisma query might be a bit tricky with adding duration, so let's fetch roughly all possibly active 
-        // messages and filter exactly in code, or we can use a raw query.
-        // Given the scale, fetching recent messages is fine. Or fetch all where showAt <= now.
-
-        const messages = await prisma.homeMessage.findMany({
-            where: {
-                showAt: {
-                    lte: now, // Already started showing
-                }
-            },
-            orderBy: {
-                showAt: 'desc'
-            }
-        });
-
-        const activeMessages = messages.filter((msg: any) => {
-            if (msg.duration === 0) return true; // Show forever
-
-            const endTime = new Date(msg.showAt.getTime() + msg.duration * 1000);
-            return now <= endTime;
-        });
+        // Filter at database level: permanent (duration=0) or still within duration window
+        const activeMessages: any[] = await prisma.$queryRaw`
+            SELECT * FROM home_messages
+            WHERE "showAt" <= NOW()
+              AND (duration = 0 OR "showAt" + (duration * INTERVAL '1 second') >= NOW())
+            ORDER BY "showAt" DESC
+        `;
 
         return { success: true, data: activeMessages };
     } catch (error) {

@@ -1,20 +1,22 @@
 import OpenAI from 'openai';
 
-// 1. 初始化 DeepSeek 客户端 (用于对话)
+// 1. Initialize DeepSeek client (for chat)
 const deepseek = new OpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY,
   baseURL: process.env.DEEPSEEK_BASE_URL,
 });
 
-// 2. 初始化智谱客户端 (用于生成向量)
+// 2. Initialize Zhipu client (for embeddings)
 const zhipu = new OpenAI({
   apiKey: process.env.ZHIPU_API_KEY,
   baseURL: "https://open.bigmodel.cn/api/paas/v4",
 });
 
-// --- 功能 A: 将文本转化为向量 (Embedding) ---
+// --- Function A: Text to vector (Embedding) ---
+const MAX_EMBEDDING_CHARS = 8000;
+
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const cleanText = text.replace(/\n/g, ' ');
+  const cleanText = text.replace(/\n/g, ' ').substring(0, MAX_EMBEDDING_CHARS);
 
   try {
     const response = await zhipu.embeddings.create({
@@ -23,12 +25,12 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     });
     return response.data[0].embedding;
   } catch (error) {
-    console.error("向量化失败:", error);
+    console.error("Embedding failed:", error);
     throw error;
   }
 }
 
-// --- 功能 B: DeepSeek 对话 (降温至 0.7，减少幻觉) ---
+// --- Function B: DeepSeek chat ---
 export async function chatWithDeepSeek(systemPrompt: string, userMessage: string) {
   try {
     const completion = await deepseek.chat.completions.create({
@@ -37,59 +39,58 @@ export async function chatWithDeepSeek(systemPrompt: string, userMessage: string
         { role: "user", content: userMessage },
       ],
       model: "deepseek-chat",
-      temperature: 0.7, // 从1.3降到0.7，兼顾温柔和准确性
+      temperature: 0.7,
     });
 
     return completion.choices[0].message.content;
   } catch (error) {
-    console.error("DeepSeek 调用失败:", error);
-    return "抱歉，我的大脑暂时短路了，请稍后再试...";
+    console.error("DeepSeek call failed:", error);
+    return "Sorry, I'm having a brain freeze, please try again...";
   }
 }
 
-// --- 功能 C: AI 查询扩展 (Query Expansion) ---
-// 将用户的短问题扩展为丰富的搜索关键词，提升向量检索命中率
+// --- Function C: AI Query Expansion ---
 export async function expandQuery(userMessage: string): Promise<string> {
   try {
     const completion = await deepseek.chat.completions.create({
       messages: [
         {
           role: "system",
-          content: `你是一个情侣聊天记录搜索词优化专家。
-用户的输入可能很简短，你的任务是扩充相关的“关键词”和“同义词”，以提高检索命中率。
-
-【🚨核心规则】：
-1. 绝对不要输出解释、标号或“核心意图”等格式化文字！
-2. 想象这段对话在微信里会怎么聊，提取出可能出现的动词、名词、口语化表达。
-3. 直接输出一串以空格分隔的关键词即可，控制在 30 字以内。
-
-示例：
-用户输入："我们去哪里吃的火锅"
-你的输出："火锅 海底捞 毛肚 吃饭 餐厅 约会 辣 好吃"`
+          content: "You are a search query expansion expert for Chinese couple chat records. " +
+            "Given a user question about past events, generate search keywords to improve retrieval. " +
+            "Rules: 1) Keep the core meaning, add synonyms and related expressions. " +
+            "2) Use casual/spoken language typical of WeChat chats. " +
+            "3) Include time-related hints. " +
+            "4) For location questions, add related landmarks, activities, food. " +
+            "5) For event questions, add related actions, feelings, follow-up discussions. " +
+            "6) Output space-separated keywords, no explanation, under 100 chars. " +
+            "Example: Input: 'where was our first date' -> " +
+            "Output: 'first date meeting place went where date location that day first meet went out'",
         },
         { role: "user", content: userMessage },
       ],
       model: "deepseek-chat",
       temperature: 0.3,
-      max_tokens: 100,
+      max_tokens: 200,
     });
 
-    return completion.choices[0].message.content || userMessage;
+    const expanded = completion.choices[0].message.content || "";
+    // Include original query to preserve semantics
+    return userMessage + " " + expanded;
   } catch (error) {
-    console.error("查询扩展失败，使用原始查询:", error);
+    console.error("Query expansion failed, using original:", error);
     return userMessage;
   }
 }
 
-// --- 功能 D: AI 重排序 (Rerank) ---
-// 让 AI 从候选记忆中挑选出最相关的，并判断相关性
+// --- Function D: AI Rerank ---
 export interface MemoryCandidate {
   id: number;
   content: string;
   sender: string;
   sendTime: Date;
   similarity: number;
-  source: 'vector' | 'keyword'; // 来源标记
+  source: 'vector' | 'keyword';
 }
 
 export interface RankedMemory {
@@ -106,9 +107,8 @@ export async function rerankMemories(
 ): Promise<RankedMemory[]> {
   if (candidates.length === 0) return [];
 
-  // 构建候选列表文本
   const candidateList = candidates.map((c, i) =>
-    `【记忆${i + 1}】(相似度:${c.similarity.toFixed(2)}, 来源:${c.source})\n${c.content.substring(0, 300)}`
+    `[Memory ${i + 1}](similarity:${c.similarity.toFixed(2)}, source:${c.source})\n${c.content.substring(0, 300)}`
   ).join('\n\n');
 
   try {
@@ -116,41 +116,31 @@ export async function rerankMemories(
       messages: [
         {
           role: "system",
-          content: `你是一个记忆相关性判断助手。用户会给你一个问题和多条聊天记忆候选。
-你需要判断每条记忆与问题的相关性，并只选出真正相关的记忆。
-
-输出严格的 JSON 数组格式，每个元素包含:
-- "index": 记忆编号(从1开始)
-- "relevance": "high"(直接回答问题) / "medium"(间接相关) / "low"(不相关)
-- "reason": 一句话说明为什么相关或不相关
-
-只输出 JSON 数组，不要其他内容。示例:
-[{"index":1,"relevance":"high","reason":"直接提到了用户问的地点"},{"index":3,"relevance":"medium","reason":"虽然没直接说但提到了相关的事"}]
-
-重要规则：
-- 如果记忆内容和问题完全无关，必须标记为 "low"
-- 宁可少选也不要错选，避免把不相关的内容标为相关
-- 只选出 relevance 为 high 或 medium 的，最多选 5 条`
+          content: "You are a memory relevance judge. Given a question and candidate chat memories, " +
+            "select only the truly relevant ones. Output strict JSON array with fields: " +
+            "'index' (1-based), 'relevance' ('high'/'medium'/'low'), 'reason' (one-sentence explanation). " +
+            "Only include high or medium relevance items, max 5. " +
+            "Example: [{\"index\":1,\"relevance\":\"high\",\"reason\":\"directly mentions the place asked about\"}] " +
+            "Important: prefer fewer accurate results over many inaccurate ones.",
         },
         {
           role: "user",
-          content: `问题: "${userQuestion}"\n\n候选记忆:\n${candidateList}`
+          content: `Question: "${userQuestion}"\n\nCandidate memories:\n${candidateList}`
         },
       ],
       model: "deepseek-chat",
-      temperature: 0.1, // 极低温度，保证判断准确
+      temperature: 0.1,
       max_tokens: 500,
     });
 
     const responseText = completion.choices[0].message.content || '[]';
 
-    // 提取 JSON（兼容 markdown code block）
+    // Extract JSON (compatible with markdown code blocks)
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return fallbackRank(candidates);
 
     const rankings: Array<{ index: number; relevance: string; reason: string }> = JSON.parse(jsonMatch[0]);
 
-    // 只保留 high 和 medium 的结果
     const relevant = rankings
       .filter(r => r.relevance === 'high' || r.relevance === 'medium')
       .sort((a, b) => (a.relevance === 'high' ? 0 : 1) - (b.relevance === 'high' ? 0 : 1))
@@ -169,22 +159,22 @@ export async function rerankMemories(
     }).filter(Boolean) as RankedMemory[];
 
   } catch (error) {
-    console.error("重排序失败，使用基础排序:", error);
+    console.error("Rerank failed, using fallback:", error);
     return fallbackRank(candidates);
   }
 }
 
-// 重排序失败时的回退策略：按相似度取前3
+// Fallback: take top 3 by similarity
 function fallbackRank(candidates: MemoryCandidate[]): RankedMemory[] {
   return candidates
     .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 3) // 取前3条，不强求绝对高分
-    .filter(c => c.similarity > 0.15) // 将底线从 0.3 降到 0.15
+    .slice(0, 3)
+    .filter(c => c.similarity > 0.15)
     .map(c => ({
       content: c.content,
       sender: c.sender,
       sendTime: c.sendTime,
-      relevance: c.similarity > 0.3 ? 'high' as const : 'medium' as const, // 降低 high 的门槛
-      reason: '基于向量相似度排序',
+      relevance: c.similarity > 0.3 ? 'high' as const : 'medium' as const,
+      reason: 'Based on vector similarity ranking',
     }));
 }

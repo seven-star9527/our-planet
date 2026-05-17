@@ -81,17 +81,20 @@ export async function addComment(momentId: number, content: string) {
 
 // 3. 点赞/取消点赞
 export async function toggleLike(momentId: number, emoji: string) {
-  // ✨ 修改：获取真实的专属昵称
   const authorName = await getCurrentAuthorName();
 
-  // 简单逻辑：直接添加一个赞
-  await prisma.like.create({
-    data: {
-      author: authorName,
-      emoji,
-      momentId,
-    },
+  // Check if already liked with same emoji
+  const existing = await prisma.like.findFirst({
+    where: { momentId, author: authorName, emoji },
   });
+
+  if (existing) {
+    await prisma.like.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.like.create({
+      data: { author: authorName, emoji, momentId },
+    });
+  }
 
   revalidatePath('/moments');
 }

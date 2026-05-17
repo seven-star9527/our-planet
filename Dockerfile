@@ -40,6 +40,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 
 # 关键修复：全局安装 prisma CLI，一次性解决所有依赖链问题
 RUN npm config set registry https://registry.npmmirror.com/

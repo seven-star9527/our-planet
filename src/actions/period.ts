@@ -10,11 +10,16 @@ export async function markPeriodStart(dateStr: string) {
     const date = new Date(dateStr);
     
     // 检查当天是否已经有记录，有则删除（实现开关效果）
+    const dayStart = new Date(dateStr);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dateStr);
+    dayEnd.setHours(23, 59, 59, 999);
+
     const existing = await prisma.periodRecord.findFirst({
       where: {
         startDate: {
-          gte: new Date(date.setHours(0, 0, 0, 0)),
-          lt: new Date(date.setHours(23, 59, 59, 999))
+          gte: dayStart,
+          lt: dayEnd,
         }
       }
     });
