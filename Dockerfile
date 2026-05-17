@@ -12,6 +12,7 @@ RUN npm ci
 COPY src ./src
 COPY public ./public
 COPY prisma ./prisma
+COPY scripts ./scripts
 COPY next.config.ts ./
 COPY tsconfig.json ./
 COPY tailwind.config.* postcss.config.* ./
