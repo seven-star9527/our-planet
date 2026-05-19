@@ -29,6 +29,13 @@ export default function ChangelogPopup() {
     setInitialized(true);
   }, [latestVersion]);
 
+  // 手动触发：监听自定义事件
+  useEffect(() => {
+    const handler = () => setVisible(true);
+    window.addEventListener('show-changelog', handler);
+    return () => window.removeEventListener('show-changelog', handler);
+  }, []);
+
   useEffect(() => {
     if (!visible) return;
     const timer = setTimeout(() => {

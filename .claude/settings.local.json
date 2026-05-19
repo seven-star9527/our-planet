@@ -13,7 +13,9 @@
       "Bash(npx next *)",
       "Bash(Select-Object Mode, Name)",
       "Bash(npx prisma *)",
-      "Bash(New-Item *)"
+      "Bash(New-Item *)",
+      "PowerShell(git push *)",
+      "PowerShell(git *)"
     ]
   }
 }

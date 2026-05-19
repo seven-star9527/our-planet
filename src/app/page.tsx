@@ -5,6 +5,7 @@ import { getActiveMessages } from '@/actions/messages';
 import HomeMessages from '@/components/home/HomeMessages';
 import SplashScreen from '@/components/home/SplashScreen';
 import ChangelogPopup from '@/components/home/ChangelogPopup';
+import ChangelogButton from '@/components/home/ChangelogButton';
 
 // npm run dev
 
@@ -112,6 +113,7 @@ export default async function Home() {
           )}
 
           <div className="relative z-10">
+            <ChangelogButton />
             <h1 className={`text-2xl md:text-3xl font-extrabold mb-2 tracking-tight ${bgImage ? 'drop-shadow-lg' : 'drop-shadow-sm'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>
               我们的专属星球 💫
             </h1>
