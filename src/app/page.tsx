@@ -98,37 +98,31 @@ export default async function Home() {
         </div>
       )}
 
-      {/* 内容层必须在 z-10 之上以便盖住背景，但其实后面已经用了 relative z-20，所以只需要确保顶部Banner等不受影响即可 */}
-      <div className="relative z-10">
+      {/* 内容层：当有背景图时添加纯色底，确保卡片区域不被背景图穿透 */}
+      <div className={`relative z-10 ${bgImage ? 'bg-gray-50 dark:bg-gray-950' : ''}`}>
 
         {/* 顶部 Banner */}
-        {!bgImage && (
-          <div className="text-white pt-16 px-8 pb-32 shadow-lg relative overflow-hidden bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500" style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/3"></div>
-            <div className="absolute bottom-0 left-0 w-28 h-28 bg-white opacity-10 rounded-full translate-y-1/3 -translate-x-1/4"></div>
+        <div className={`text-white pt-16 px-8 pb-32 shadow-lg relative overflow-hidden ${
+          bgImage
+            ? 'bg-gradient-to-r from-pink-500/50 via-purple-500/50 to-indigo-500/50 backdrop-blur-sm'
+            : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
+        }`} style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
+          {!bgImage && (
+            <>
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/3"></div>
+              <div className="absolute bottom-0 left-0 w-28 h-28 bg-white opacity-10 rounded-full translate-y-1/3 -translate-x-1/4"></div>
+            </>
+          )}
 
-            <div className="relative z-10">
-              <h1 className="text-2xl md:text-3xl font-extrabold mb-2 tracking-tight drop-shadow-sm">
-                我们的专属星球 💫
-              </h1>
-              <p className="opacity-95 text-sm md:text-base font-medium drop-shadow-sm">
-                在一起的第 <span className="font-bold text-lg">{daysTogether}</span> 天
-              </p>
-            </div>
+          <div className="relative z-10">
+            <h1 className={`text-2xl md:text-3xl font-extrabold mb-2 tracking-tight ${bgImage ? 'drop-shadow-lg' : 'drop-shadow-sm'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>
+              我们的专属星球 💫
+            </h1>
+            <p className={`text-sm md:text-base font-medium ${bgImage ? 'drop-shadow-lg' : 'opacity-95 drop-shadow-sm'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>
+              在一起的第 <span className="font-bold text-lg">{daysTogether}</span> 天
+            </p>
           </div>
-        )}
-        {bgImage && (
-          <div className="text-white pt-16 px-8 pb-32 relative" style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
-            <div className="relative z-10">
-              <h1 className="text-2xl md:text-3xl font-extrabold mb-2 tracking-tight drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                我们的专属星球 💫
-              </h1>
-              <p className="text-sm md:text-base font-medium drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                在一起的第 <span className="font-bold text-lg">{daysTogether}</span> 天
-              </p>
-            </div>
-          </div>
-        )}
+        </div>
 
         <div className="max-w-lg mx-auto px-4 -mt-20 relative z-20 space-y-4">
 

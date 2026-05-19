@@ -138,8 +138,8 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
         </div>
 
         {/* 日期网格 */}
-        <div className="grid grid-cols-7 gap-1.5">
-          {blanksArray.map(b => <div key={`blank-${b}`} className="min-h-[5rem]"></div>)}
+        <div className="grid grid-cols-7 gap-2">
+          {blanksArray.map(b => <div key={`blank-${b}`} className="min-h-[5.5rem]"></div>)}
           {daysArray.map(day => {
             const dayData = getDayData(day);
             const today = isToday(day);
@@ -154,7 +154,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
               <button
                 key={day}
                 onClick={() => handleDayClick(day)}
-                className={`relative flex flex-col items-center justify-center rounded-2xl text-sm font-bold transition-all duration-200 py-1.5 gap-0.5
+                className={`relative flex flex-col items-center justify-center rounded-2xl text-sm font-bold transition-all duration-200 py-2 gap-1
                   ${isSelected ? 'ring-2 ring-pink-400 ring-offset-1 scale-105 z-10' : ''}
                   ${today ? 'border-2 border-pink-300' : 'border border-transparent'}
                   ${hasBoy && hasGirl ? 'bg-gradient-to-br from-blue-50 to-pink-50' : hasBoy ? 'bg-blue-50/60' : hasGirl ? 'bg-pink-50/60' : 'bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 hover:bg-pink-50/60'}
@@ -166,18 +166,18 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-blue-400 w-3 text-center">♂</span>
                   {boyMood ? (
-                    <span className="rounded-md w-7 h-7 flex items-center justify-center text-base shadow-sm bg-white/60">{boyMood.emoji}</span>
+                    <span className="rounded-md w-7 h-7 flex items-center justify-center text-lg shadow-sm bg-white/60">{boyMood.emoji}</span>
                   ) : (
-                    <span className="rounded-md w-7 h-7 border border-dashed border-gray-200 bg-white/40"></span>
+                    <span className="rounded-md w-7 h-7 border border-dashed border-gray-200 dark:border-gray-600 bg-white/40 dark:bg-gray-700/40"></span>
                   )}
                 </div>
                 {/* 女生行 — 圆形 */}
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-pink-400 w-3 text-center">♀</span>
                   {girlMood ? (
-                    <span className="rounded-full w-7 h-7 flex items-center justify-center text-base shadow-sm bg-white/60">{girlMood.emoji}</span>
+                    <span className="rounded-full w-7 h-7 flex items-center justify-center text-lg shadow-sm bg-white/60">{girlMood.emoji}</span>
                   ) : (
-                    <span className="rounded-full w-7 h-7 border border-dashed border-gray-200 bg-white/40"></span>
+                    <span className="rounded-full w-7 h-7 border border-dashed border-gray-200 dark:border-gray-600 bg-white/40 dark:bg-gray-700/40"></span>
                   )}
                 </div>
               </button>

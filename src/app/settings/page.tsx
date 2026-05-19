@@ -126,7 +126,7 @@ export default function SettingsPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center shadow-sm">
-        <Link href="/" className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-colors p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+        <Link href="/" className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-all duration-150 p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-90 active:bg-gray-200 dark:active:bg-gray-600">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
@@ -317,25 +317,18 @@ export default function SettingsPage() {
                   {bgTone > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: bgTone }} />}
                 </div>
                 {/* Mini Banner */}
-                {bgImage ? (
-                  <div className="absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12" style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
-                    <div className="text-base font-bold drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>我们的专属星球 💫</div>
-                    {anniversaryDate && (
-                      <div className="text-xs mt-1 font-medium drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                        在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500" style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
-                    <div className="text-base font-bold drop-shadow-sm">我们的专属星球 💫</div>
-                    {anniversaryDate && (
-                      <div className="text-xs opacity-90 mt-1 font-medium">
-                        在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className={`absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 ${
+                  bgImage
+                    ? 'bg-gradient-to-r from-pink-500/50 via-purple-500/50 to-indigo-500/50 backdrop-blur-sm'
+                    : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
+                }`} style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
+                  <div className={`text-base font-bold ${bgImage ? 'drop-shadow-lg' : 'drop-shadow-sm'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>我们的专属星球 💫</div>
+                  {anniversaryDate && (
+                    <div className={`text-xs mt-1 font-medium ${bgImage ? 'drop-shadow-lg' : 'opacity-90'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>
+                      在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
+                    </div>
+                  )}
+                </div>
                 {/* Mini Cards */}
                 <div className="absolute bottom-4 left-4 right-4 flex gap-2" style={{ marginTop: '-20px' }}>
                   <div className={`flex-1 ${bgImage ? 'bg-white/80 backdrop-blur-sm' : 'bg-white'} rounded-xl p-3 shadow-sm text-center`}>
