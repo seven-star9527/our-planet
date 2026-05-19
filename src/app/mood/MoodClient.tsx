@@ -22,6 +22,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedMood, setSelectedMood] = useState('');
   const [diaryText, setDiaryText] = useState('');
+  const [partnerMood, setPartnerMood] = useState<RecordItem | null>(null);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [showStats, setShowStats] = useState(false);
@@ -68,8 +69,10 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
     setSelectedDay(day);
     const dayData = getDayData(day);
     const myRecord = role === 'boy' ? dayData.boy : dayData.girl;
+    const partnerRecord = role === 'boy' ? dayData.girl : dayData.boy;
     setSelectedMood(myRecord?.mood || '');
     setDiaryText(myRecord?.diary || '');
+    setPartnerMood(partnerRecord || null);
   };
 
   const handleSave = async () => {
@@ -252,8 +255,37 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
               </button>
             </div>
 
-            {/* 心情选择 */}
-            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3">选择今天的心情</p>
+            {/* 对方的心情（只读） */}
+            <div className={`rounded-2xl p-4 mb-5 ${role === 'boy' ? 'bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800'}`}>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">
+                {role === 'boy' ? `👧 ${girlName}` : `👨 ${boyName}`} 的心情
+              </p>
+              {partnerMood ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center justify-center text-2xl ${role === 'boy' ? 'rounded-full' : 'rounded-md'} w-10 h-10 ${role === 'boy' ? 'bg-pink-100/80 dark:bg-pink-800/50' : 'bg-blue-100/80 dark:bg-blue-800/50'}`}>
+                      {MOODS.find(m => m.key === partnerMood.mood)?.emoji}
+                    </span>
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                      {MOODS.find(m => m.key === partnerMood.mood)?.label}
+                    </span>
+                  </div>
+                  {partnerMood.diary && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed bg-white/60 dark:bg-black/20 rounded-xl p-3">
+                      {partnerMood.diary}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">今天还没有记录心情</p>
+              )}
+            </div>
+
+            {/* 我的心情（可编辑） */}
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">
+              {role === 'boy' ? `👨 ${boyName}` : `👧 ${girlName}`} 的心情
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3">点击选择心情，可编辑日记</p>
             <div className="grid grid-cols-4 gap-3 mb-5">
               {MOODS.map(m => (
                 <button
@@ -264,7 +296,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
                   `}
                 >
                   <span className="text-3xl">{m.emoji}</span>
-                  <span className={`text-[11px] font-bold ${selectedMood === m.key ? '' : 'text-gray-500'}`}>
+                  <span className={`text-[11px] font-bold ${selectedMood === m.key ? '' : 'text-gray-500 dark:text-gray-400'}`}>
                     {m.label}
                   </span>
                 </button>
@@ -272,7 +304,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
             </div>
 
             {/* 日记输入 */}
-            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">日记 (可选)</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">我的日记 (可选)</p>
             <textarea
               value={diaryText}
               onChange={(e) => setDiaryText(e.target.value)}
