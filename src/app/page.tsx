@@ -82,35 +82,32 @@ export default async function Home() {
       <SplashScreen config={splashConfig} />
       <ChangelogPopup />
 
-      {/* 自定义背景图层 */}
-      {bgImage && (
-        <div className="fixed inset-0 z-0 pointer-events-none" style={{ opacity: bgOpacity }}>
-          <img
-            src={bgImage}
-            alt="Background"
-            className={`w-full h-full ${bgFit === 'contain' ? 'object-contain' : 'object-cover'}`}
-            style={{ objectPosition: `${bgPosX}% ${bgPosY}%` }}
-          />
-          {/* 深色蒙层 */}
-          {bgTone > 0 && (
-            <div className="absolute inset-0 bg-black" style={{ opacity: bgTone }}></div>
-          )}
-        </div>
-      )}
-
-      {/* 内容层：当有背景图时添加纯色底，确保卡片区域不被背景图穿透 */}
-      <div className={`relative z-10 ${bgImage ? 'bg-gray-50 dark:bg-gray-950' : ''}`}>
+      <div className="relative z-10">
 
         {/* 顶部 Banner */}
-        <div className={`text-white pt-16 px-8 pb-32 shadow-lg relative overflow-hidden ${
-          bgImage
-            ? 'bg-gradient-to-r from-pink-500/50 via-purple-500/50 to-indigo-500/50 backdrop-blur-sm'
-            : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
-        }`} style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
-          {!bgImage && (
+        <div className="text-white pt-16 px-8 pb-32 shadow-lg relative overflow-hidden" style={{ borderBottomLeftRadius: '40px', borderBottomRightRadius: '40px' }}>
+          {/* Banner 背景：有自定义图时用图片，否则用渐变 */}
+          {bgImage ? (
             <>
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/3"></div>
-              <div className="absolute bottom-0 left-0 w-28 h-28 bg-white opacity-10 rounded-full translate-y-1/3 -translate-x-1/4"></div>
+              <img
+                src={bgImage}
+                alt="Banner"
+                className="absolute inset-0 w-full h-full"
+                style={{
+                  objectFit: bgFit as any,
+                  objectPosition: `${bgPosX}% ${bgPosY}%`,
+                  opacity: bgOpacity,
+                }}
+              />
+              {bgTone > 0 && (
+                <div className="absolute inset-0 bg-black" style={{ opacity: bgTone }} />
+              )}
+            </>
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500" />
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/3" />
+              <div className="absolute bottom-0 left-0 w-28 h-28 bg-white opacity-10 rounded-full translate-y-1/3 -translate-x-1/4" />
             </>
           )}
 

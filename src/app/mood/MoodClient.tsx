@@ -162,22 +162,20 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
                 `}
               >
                 <span className={`text-xs leading-none ${today ? 'text-pink-500' : ''}`}>{day}</span>
-                {/* 男生行 — 方形 */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-blue-400 w-3 text-center">♂</span>
+                {/* 男生行 — 方形淡蓝底 */}
+                <div className="flex items-center justify-center">
                   {boyMood ? (
-                    <span className="rounded-md w-7 h-7 flex items-center justify-center text-lg shadow-sm bg-white/60">{boyMood.emoji}</span>
+                    <span className="rounded-md w-7 h-7 flex items-center justify-center text-lg shadow-sm bg-blue-100/60">{boyMood.emoji}</span>
                   ) : (
-                    <span className="rounded-md w-7 h-7 border border-dashed border-gray-200 dark:border-gray-600 bg-white/40 dark:bg-gray-700/40"></span>
+                    <span className="rounded-md w-7 h-7 border border-dashed border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-900/20"></span>
                   )}
                 </div>
-                {/* 女生行 — 圆形 */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-pink-400 w-3 text-center">♀</span>
+                {/* 女生行 — 圆形淡粉底 */}
+                <div className="flex items-center justify-center">
                   {girlMood ? (
-                    <span className="rounded-full w-7 h-7 flex items-center justify-center text-lg shadow-sm bg-white/60">{girlMood.emoji}</span>
+                    <span className="rounded-full w-7 h-7 flex items-center justify-center text-lg shadow-sm bg-pink-100/60">{girlMood.emoji}</span>
                   ) : (
-                    <span className="rounded-full w-7 h-7 border border-dashed border-gray-200 dark:border-gray-600 bg-white/40 dark:bg-gray-700/40"></span>
+                    <span className="rounded-full w-7 h-7 border border-dashed border-pink-200 dark:border-pink-800 bg-pink-50/30 dark:bg-pink-900/20"></span>
                   )}
                 </div>
               </button>

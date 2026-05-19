@@ -187,19 +187,19 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* 首页背景设置 */}
+          {/* 首页横幅设置 */}
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
-            <div className="p-5 border-b border-gray-50 flex justify-between items-center">
+            <div className="p-5 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center">
               <div>
-                <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">🖼️ 首页背景图</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">自定义首页背景，效果实时预览</p>
+                <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">🖼️ 首页横幅图</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">替换顶部 Banner 渐变背景，效果实时预览</p>
               </div>
             </div>
             <div className="p-5 space-y-5">
 
               {/* 图片上传区域 */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-gray-600">背景图片</label>
+                <label className="block text-xs font-bold text-gray-600 dark:text-gray-300">横幅图片</label>
                 {bgImage ? (
                   <div className="relative w-full h-40 rounded-xl overflow-hidden shadow-sm group border border-gray-200">
                     <img src={bgImage} alt="Background" className="w-full h-full object-cover" />
@@ -302,42 +302,44 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* 预览卡片 (保持不变) */}
-          {/* 首页背景预览 */}
+          {/* 首页横幅预览 */}
           {bgImage && (
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
               <div className="p-5 border-b border-gray-50 dark:border-gray-700">
                 <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">✨ 首页效果预览</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">背景图+顶部Banner的实际效果</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">横幅图替换渐变背景的实际效果</p>
               </div>
-              <div className="relative h-56 overflow-hidden">
-                {/* 背景图层 */}
-                <div className="absolute inset-0" style={{ opacity: bgOpacity }}>
-                  <img src={bgImage} className="w-full h-full" style={{ objectFit: bgFit as any, objectPosition: `${bgPosX}% ${bgPosY}%` }} />
+              <div className="relative h-56 overflow-hidden bg-gray-50 dark:bg-gray-950">
+                {/* Mini Banner with uploaded image */}
+                <div className="absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 overflow-hidden" style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
+                  <img
+                    src={bgImage}
+                    className="absolute inset-0 w-full h-full"
+                    style={{
+                      objectFit: bgFit as any,
+                      objectPosition: `${bgPosX}% ${bgPosY}%`,
+                      opacity: bgOpacity,
+                    }}
+                  />
                   {bgTone > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: bgTone }} />}
-                </div>
-                {/* Mini Banner */}
-                <div className={`absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 ${
-                  bgImage
-                    ? 'bg-gradient-to-r from-pink-500/50 via-purple-500/50 to-indigo-500/50 backdrop-blur-sm'
-                    : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
-                }`} style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
-                  <div className={`text-base font-bold ${bgImage ? 'drop-shadow-lg' : 'drop-shadow-sm'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>我们的专属星球 💫</div>
-                  {anniversaryDate && (
-                    <div className={`text-xs mt-1 font-medium ${bgImage ? 'drop-shadow-lg' : 'opacity-90'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>
-                      在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
-                    </div>
-                  )}
-                </div>
-                {/* Mini Cards */}
-                <div className="absolute bottom-4 left-4 right-4 flex gap-2" style={{ marginTop: '-20px' }}>
-                  <div className={`flex-1 ${bgImage ? 'bg-white/80 backdrop-blur-sm' : 'bg-white'} rounded-xl p-3 shadow-sm text-center`}>
-                    <div className="text-lg">📸</div>
-                    <div className="text-[10px] font-bold text-gray-500">时光手账</div>
+                  <div className="relative z-10">
+                    <div className="text-base font-bold drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>我们的专属星球 💫</div>
+                    {anniversaryDate && (
+                      <div className="text-xs mt-1 font-medium drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                        在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
+                      </div>
+                    )}
                   </div>
-                  <div className={`flex-1 ${bgImage ? 'bg-white/80 backdrop-blur-sm' : 'bg-white'} rounded-xl p-3 shadow-sm text-center`}>
-                    <div className="text-lg">😊</div>
-                    <div className="text-[10px] font-bold text-gray-500">心情日记</div>
+                </div>
+                {/* Mini Cards on white bg */}
+                <div className="absolute bottom-4 left-4 right-4 flex gap-2">
+                  <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm text-center">
+                    <div className="text-lg">📸</div>
+                    <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400">时光手账</div>
+                  </div>
+                  <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm text-center">
+                    <div className="text-lg">💗</div>
+                    <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400">心情日记</div>
                   </div>
                 </div>
               </div>
