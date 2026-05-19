@@ -11,8 +11,8 @@ export async function setMood(dateStr: string, mood: string, diary?: string) {
     return { success: false, error: '未登录' };
   }
 
-  const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
 
   try {
     await prisma.moodRecord.upsert({
@@ -32,8 +32,8 @@ export async function deleteMood(dateStr: string) {
   const author = cookieStore.get('user_role')?.value;
   if (!author) return { success: false, error: '未登录' };
 
-  const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
 
   try {
     await prisma.moodRecord.deleteMany({

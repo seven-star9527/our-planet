@@ -60,16 +60,16 @@ export default async function MomentsPage({
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
       {/* Top navigation */}
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex justify-between items-center shadow-sm">
+      <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
-          <Link href="/" className="text-gray-500 hover:text-gray-800 transition-colors p-2 -ml-2 rounded-full hover:bg-gray-100">
+          <Link href="/" className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-colors p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <h1 className="text-lg font-bold text-gray-800">📸 时光手账</h1>
+          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">📸 时光手账</h1>
           {tag && (
             <Link href="/moments" className="text-xs bg-pink-50 text-pink-500 px-2.5 py-1 rounded-full font-medium ml-1">
               #{tag} ✕

@@ -3,6 +3,17 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+
+export async function setThemeCookie(theme: string) {
+  const cookieStore = await cookies();
+  cookieStore.set('theme', theme, {
+    path: '/',
+    maxAge: 365 * 24 * 60 * 60,
+    httpOnly: false,
+    sameSite: 'lax',
+  });
+}
 
 // 获取所有设置项
 export async function getSettings() {

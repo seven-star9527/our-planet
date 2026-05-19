@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { updateSettings, getSettings } from '@/actions/settings';
+import { updateSettings, getSettings, setThemeCookie } from '@/actions/settings';
 import Link from 'next/link';
 
 export default function SettingsPage() {
   const [anniversaryDate, setAnniversaryDate] = useState('');
   const [boyName, setBoyName] = useState('男主');
   const [girlName, setGirlName] = useState('女主');
+  const [theme, setTheme] = useState('system');
 
   // 背景设置
   const [bgImage, setBgImage] = useState('');
@@ -58,12 +59,29 @@ export default function SettingsPage() {
         if (data.splash_text) setSplashText(data.splash_text);
         if (data.splash_entry_type) setSplashEntryType(data.splash_entry_type);
         if (data.splash_duration) setSplashDuration(Number(data.splash_duration));
+        if (data.theme) setTheme(data.theme);
       } catch (error) {
         console.error('加载设置失败:', error);
       }
     }
     loadSettings();
   }, []);
+
+  const handleThemeChange = async (newTheme: string) => {
+    setTheme(newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    await setThemeCookie(newTheme);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +106,7 @@ export default function SettingsPage() {
         splash_text: splashText,
         splash_entry_type: splashEntryType,
         splash_duration: splashDuration.toString(),
+        theme,
       });
 
       if (result.success) {
@@ -105,24 +124,24 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-24">
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center shadow-sm">
-        <Link href="/" className="text-gray-500 hover:text-gray-800 transition-colors p-2 -ml-2 rounded-full hover:bg-gray-100">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
+      <div className="sticky top-0 z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center shadow-sm">
+        <Link href="/" className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-colors p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <h1 className="text-lg font-bold text-gray-800 ml-2">⚙️ 设置</h1>
+        <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 ml-2">⚙️ 设置</h1>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <form id="settings-form" onSubmit={handleSubmit} className="space-y-6">
 
           {/* 专属称呼设置卡片 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
-            <div className="p-5 border-b border-gray-50">
-              <h2 className="font-bold text-gray-800 text-lg">📝 专属称呼</h2>
-              <p className="text-sm text-gray-500 mt-1">发手账时，会显示你们自定义的名字哦</p>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
+            <div className="p-5 border-b border-gray-50 dark:border-gray-700">
+              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">📝 专属称呼</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">发手账时，会显示你们自定义的名字哦</p>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex gap-4">
@@ -132,7 +151,7 @@ export default function SettingsPage() {
                     type="text"
                     value={boyName}
                     onChange={(e) => setBoyName(e.target.value)}
-                    className="w-full px-4 py-3 bg-blue-50/50 rounded-2xl border border-blue-100 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none text-gray-700 text-sm"
+                    className="w-full px-4 py-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none text-gray-700 dark:text-gray-200 text-sm"
                   />
                 </div>
                 <div className="flex-1">
@@ -141,7 +160,7 @@ export default function SettingsPage() {
                     type="text"
                     value={girlName}
                     onChange={(e) => setGirlName(e.target.value)}
-                    className="w-full px-4 py-3 bg-pink-50/50 rounded-2xl border border-pink-100 focus:border-pink-300 focus:ring-2 focus:ring-pink-100 outline-none text-gray-700 text-sm"
+                    className="w-full px-4 py-3 bg-pink-50/50 dark:bg-pink-900/20 rounded-2xl border border-pink-100 dark:border-pink-800 focus:border-pink-300 focus:ring-2 focus:ring-pink-100 outline-none text-gray-700 dark:text-gray-200 text-sm"
                   />
                 </div>
               </div>
@@ -149,10 +168,10 @@ export default function SettingsPage() {
           </div>
 
           {/* 纪念日设置卡片 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
-            <div className="p-5 border-b border-gray-50">
-              <h2 className="font-bold text-gray-800 text-lg">💑 纪念日设置</h2>
-              <p className="text-sm text-gray-500 mt-1">设置你们在一起的日期</p>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
+            <div className="p-5 border-b border-gray-50 dark:border-gray-700">
+              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">💑 纪念日设置</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">设置你们在一起的日期</p>
             </div>
 
             <div className="p-5 space-y-4">
@@ -161,7 +180,7 @@ export default function SettingsPage() {
                   type="date"
                   value={anniversaryDate}
                   onChange={(e) => setAnniversaryDate(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-100 focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all outline-none text-gray-700 text-sm"
+                  className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-700 rounded-2xl border border-gray-100 dark:border-gray-600 focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all outline-none text-gray-700 dark:text-gray-200 text-sm"
                   disabled={loading}
                 />
               </div>
@@ -169,11 +188,11 @@ export default function SettingsPage() {
           </div>
 
           {/* 首页背景设置 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
             <div className="p-5 border-b border-gray-50 flex justify-between items-center">
               <div>
-                <h2 className="font-bold text-gray-800 text-lg">🖼️ 首页背景图</h2>
-                <p className="text-sm text-gray-500 mt-1">自定义首页背景，效果实时预览</p>
+                <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">🖼️ 首页背景图</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">自定义首页背景，效果实时预览</p>
               </div>
             </div>
             <div className="p-5 space-y-5">
@@ -196,7 +215,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-pointer group">
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors cursor-pointer group">
                     <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-xl shadow-sm mb-2 group-hover:scale-110 transition-transform text-gray-400">
                       📷
                     </div>
@@ -286,10 +305,10 @@ export default function SettingsPage() {
           {/* 预览卡片 (保持不变) */}
           {/* 首页背景预览 */}
           {bgImage && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
-              <div className="p-5 border-b border-gray-50">
-                <h2 className="font-bold text-gray-800 text-lg">✨ 首页效果预览</h2>
-                <p className="text-sm text-gray-500 mt-1">背景图+顶部Banner的实际效果</p>
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
+              <div className="p-5 border-b border-gray-50 dark:border-gray-700">
+                <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">✨ 首页效果预览</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">背景图+顶部Banner的实际效果</p>
               </div>
               <div className="relative h-56 overflow-hidden">
                 {/* 背景图层 */}
@@ -298,16 +317,25 @@ export default function SettingsPage() {
                   {bgTone > 0 && <div className="absolute inset-0 bg-black" style={{ opacity: bgTone }} />}
                 </div>
                 {/* Mini Banner */}
-                <div className={`absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 ${
-                  bgImage ? 'bg-gradient-to-r from-pink-500/50 via-purple-500/50 to-indigo-500/50 backdrop-blur-sm' : 'bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500'
-                }`} style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
-                  <div className="text-base font-bold drop-shadow-sm">我们的专属星球 🌍</div>
-                  {anniversaryDate && (
-                    <div className="text-xs opacity-90 mt-1 font-medium">
-                      在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
-                    </div>
-                  )}
-                </div>
+                {bgImage ? (
+                  <div className="absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12" style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
+                    <div className="text-base font-bold drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>我们的专属星球 💫</div>
+                    {anniversaryDate && (
+                      <div className="text-xs mt-1 font-medium drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                        在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="absolute top-0 left-0 right-0 text-white pt-10 px-6 pb-12 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500" style={{ borderBottomLeftRadius: '28px', borderBottomRightRadius: '28px' }}>
+                    <div className="text-base font-bold drop-shadow-sm">我们的专属星球 💫</div>
+                    {anniversaryDate && (
+                      <div className="text-xs opacity-90 mt-1 font-medium">
+                        在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Mini Cards */}
                 <div className="absolute bottom-4 left-4 right-4 flex gap-2" style={{ marginTop: '-20px' }}>
                   <div className={`flex-1 ${bgImage ? 'bg-white/80 backdrop-blur-sm' : 'bg-white'} rounded-xl p-3 shadow-sm text-center`}>
@@ -326,11 +354,11 @@ export default function SettingsPage() {
           {/* 其他设置 */}
 
           {/* 开屏动画设置 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
             <div className="p-5 border-b border-gray-50 flex justify-between items-center">
               <div>
-                <h2 className="font-bold text-gray-800 text-lg">🚀 专属开屏特效</h2>
-                <p className="text-sm text-gray-500 mt-1">设置绚丽的欢迎动画或视频</p>
+                <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">🚀 专属开屏特效</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">设置绚丽的欢迎动画或视频</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" checked={splashEnabled} onChange={e => setSplashEnabled(e.target.checked)} className="sr-only peer" />
@@ -343,7 +371,7 @@ export default function SettingsPage() {
 
                 {/* 动画模式选择 */}
                 <div>
-                  <label className="text-xs font-bold text-gray-600 mb-2 block">动画展现模式</label>
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-2 block">动画展现模式</label>
                   <div className="flex bg-gray-50 p-1.5 rounded-xl">
                     <button type="button" onClick={() => setSplashMode('template')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${splashMode === 'template' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}>内置节日模板</button>
                     <button type="button" onClick={() => setSplashMode('custom')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${splashMode === 'custom' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}>自定义上传</button>
@@ -352,7 +380,7 @@ export default function SettingsPage() {
 
                 {splashMode === 'template' ? (
                   <div>
-                    <label className="text-xs font-bold text-gray-600 mb-2 block">选择叠加特效 (支持多选) 🎊</label>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-2 block">选择叠加特效 (支持多选) 🎊</label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {[
                         { id: 'fireworks', icon: '🎇', label: '绚烂烟火' },
@@ -446,7 +474,7 @@ export default function SettingsPage() {
                   <textarea
                     value={splashText}
                     onChange={e => setSplashText(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-purple-300 focus:ring-2 focus:ring-purple-100 outline-none text-gray-700 text-sm h-20 resize-none"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-purple-300 focus:ring-2 focus:ring-purple-100 outline-none text-gray-700 dark:text-gray-200 text-sm h-20 resize-none"
                     placeholder="文案支持回车换行哦..."
                   />
                 </div>
@@ -454,11 +482,11 @@ export default function SettingsPage() {
                 {/* 进入交互方式 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-gray-600 mb-2 block">如何进入星球？</label>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-2 block">如何进入星球？</label>
                     <select
                       value={splashEntryType}
                       onChange={e => setSplashEntryType(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 focus:border-purple-300 outline-none text-gray-700 text-sm font-medium"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-purple-300 outline-none text-gray-700 dark:text-gray-200 text-sm font-medium"
                     >
                       <option value="countdown">自动倒计时</option>
                       <option value="click">点击按钮</option>
@@ -467,14 +495,14 @@ export default function SettingsPage() {
 
                   {splashEntryType === 'countdown' && (
                     <div>
-                      <label className="text-xs font-bold text-gray-600 mb-2 block">倒计时秒数</label>
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-300 mb-2 block">倒计时秒数</label>
                       <input
                         type="number"
                         min="1"
                         max="60"
                         value={splashDuration}
                         onChange={e => setSplashDuration(Number(e.target.value))}
-                        className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 focus:border-purple-300 outline-none text-gray-700 text-sm font-medium"
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-purple-300 outline-none text-gray-700 dark:text-gray-200 text-sm font-medium"
                       />
                     </div>
                   )}
@@ -484,31 +512,46 @@ export default function SettingsPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
-            <div className="p-5 border-b border-gray-50">
-              <h2 className="font-bold text-gray-800 text-lg">🎨 外观设置</h2>
-              <p className="text-sm text-gray-500 mt-1">自定义应用的外观主题</p>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
+            <div className="p-5 border-b border-gray-50 dark:border-gray-700">
+              <h2 className="font-bold text-gray-800 dark:text-gray-100 text-lg">🎨 外观设置</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">自定义应用的外观主题</p>
             </div>
 
             <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-gray-700 text-sm">深色模式</div>
-                  <div className="text-xs text-gray-400 mt-0.5">即将推出，敬请期待</div>
-                </div>
-                <div className="w-12 h-6 bg-gray-100 rounded-full relative cursor-not-allowed opacity-50 border border-gray-200">
-                  <div className="w-5 h-5 bg-white rounded-full absolute top-[1px] left-[1px] shadow-sm"></div>
+              <div>
+                <div className="font-bold text-gray-700 dark:text-gray-200 text-sm mb-3">深色模式</div>
+                <div className="flex bg-gray-50 dark:bg-gray-800 p-1.5 rounded-xl">
+                  {[
+                    { value: 'system', label: '💻 跟随系统', desc: '自动匹配' },
+                    { value: 'light', label: '☀️ 浅色模式', desc: '始终明亮' },
+                    { value: 'dark', label: '🌙 深色模式', desc: '护眼暗色' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleThemeChange(opt.value)}
+                      className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex flex-col items-center gap-0.5 ${
+                        theme === opt.value
+                          ? 'bg-white dark:bg-gray-700 shadow-sm text-purple-600 dark:text-purple-400'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      <span className="text-base">{opt.label.slice(0, 2)}</span>
+                      <span>{opt.label.slice(3)}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
           {/* 关于 */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100/50 dark:border-gray-700 overflow-hidden">
             <div className="p-5 text-center">
               <div className="text-4xl mb-2">🌍</div>
               <h2 className="font-black text-gray-800 text-lg mb-1">我们的专属星球</h2>
-              <p className="text-sm text-gray-600 mb-2 font-medium">v2.0.0</p>
+              <p className="text-sm text-gray-600 mb-2 font-medium">v2.1.0</p>
             </div>
           </div>
 

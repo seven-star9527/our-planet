@@ -75,7 +75,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
   const handleSave = async () => {
     if (!selectedMood || selectedDay === null) return;
     setIsSubmitting(true);
-    const dateStr = new Date(year, month - 1, selectedDay).toISOString();
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
     const result = await setMood(dateStr, selectedMood, diaryText.trim() || undefined);
     if (result.success) {
       setSelectedDay(null);
@@ -87,7 +87,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
   const handleDelete = async () => {
     if (selectedDay === null) return;
     setIsSubmitting(true);
-    const dateStr = new Date(year, month - 1, selectedDay).toISOString();
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
     const result = await deleteMood(dateStr);
     if (result.success) {
       setSelectedDay(null);
@@ -105,41 +105,41 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
       <div className="flex justify-end">
         <button
           onClick={() => setShowStats(!showStats)}
-          className={`px-4 py-1.5 text-xs font-bold rounded-2xl transition-all ${showStats ? 'bg-purple-100 text-purple-600' : 'bg-white text-gray-500 border border-gray-100 shadow-sm'}`}
+          className={`px-4 py-1.5 text-xs font-bold rounded-2xl transition-all ${showStats ? 'bg-purple-100 text-purple-600' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-700 shadow-sm'}`}
         >
           {showStats ? '收起统计' : '📊 月度统计'}
         </button>
       </div>
 
       {/* 日历卡片 */}
-      <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100 dark:border-gray-700">
         {/* 月份导航 */}
         <div className="flex justify-between items-center mb-6 px-2">
           <button
             onClick={() => setCurrentDate(new Date(year, month - 2, 1))}
-            className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-600 rounded-full hover:bg-pink-50 hover:text-pink-500 transition-colors font-bold"
+            className="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-pink-50 hover:text-pink-500 transition-colors font-bold"
           >
             &lt;
           </button>
-          <div className="font-black text-gray-800 text-lg">
+          <div className="font-black text-gray-800 dark:text-gray-100 text-lg">
             {year}年 {month}月
           </div>
           <button
             onClick={() => setCurrentDate(new Date(year, month, 1))}
-            className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-600 rounded-full hover:bg-pink-50 hover:text-pink-500 transition-colors font-bold"
+            className="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:bg-pink-50 hover:text-pink-500 transition-colors font-bold"
           >
             &gt;
           </button>
         </div>
 
         {/* 星期表头 */}
-        <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-400">
+        <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-400 dark:text-gray-500">
           <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div className="text-pink-400">六</div><div className="text-pink-400">日</div>
         </div>
 
         {/* 日期网格 */}
         <div className="grid grid-cols-7 gap-1.5">
-          {blanksArray.map(b => <div key={`blank-${b}`} className="min-h-[4.5rem]"></div>)}
+          {blanksArray.map(b => <div key={`blank-${b}`} className="min-h-[5rem]"></div>)}
           {daysArray.map(day => {
             const dayData = getDayData(day);
             const today = isToday(day);
@@ -157,27 +157,27 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
                 className={`relative flex flex-col items-center justify-center rounded-2xl text-sm font-bold transition-all duration-200 py-1.5 gap-0.5
                   ${isSelected ? 'ring-2 ring-pink-400 ring-offset-1 scale-105 z-10' : ''}
                   ${today ? 'border-2 border-pink-300' : 'border border-transparent'}
-                  ${hasBoy && hasGirl ? 'bg-gradient-to-br from-blue-50 to-pink-50' : hasBoy ? 'bg-blue-50/60' : hasGirl ? 'bg-pink-50/60' : 'bg-gray-50/50 text-gray-600 hover:bg-pink-50/60'}
+                  ${hasBoy && hasGirl ? 'bg-gradient-to-br from-blue-50 to-pink-50' : hasBoy ? 'bg-blue-50/60' : hasGirl ? 'bg-pink-50/60' : 'bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 hover:bg-pink-50/60'}
                   cursor-pointer active:scale-95
                 `}
               >
                 <span className={`text-xs leading-none ${today ? 'text-pink-500' : ''}`}>{day}</span>
                 {/* 男生行 — 方形 */}
-                <div className="flex items-center gap-0.5">
-                  <span className="text-[9px] text-blue-400 w-3 text-center">♂</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-blue-400 w-3 text-center">♂</span>
                   {boyMood ? (
-                    <span className="rounded-md w-5 h-5 flex items-center justify-center text-xs shadow-sm bg-white/60">{boyMood.emoji}</span>
+                    <span className="rounded-md w-7 h-7 flex items-center justify-center text-base shadow-sm bg-white/60">{boyMood.emoji}</span>
                   ) : (
-                    <span className="rounded-md w-5 h-5 border border-dashed border-gray-200 bg-white/40"></span>
+                    <span className="rounded-md w-7 h-7 border border-dashed border-gray-200 bg-white/40"></span>
                   )}
                 </div>
                 {/* 女生行 — 圆形 */}
-                <div className="flex items-center gap-0.5">
-                  <span className="text-[9px] text-pink-400 w-3 text-center">♀</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-pink-400 w-3 text-center">♀</span>
                   {girlMood ? (
-                    <span className="rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-sm bg-white/60">{girlMood.emoji}</span>
+                    <span className="rounded-full w-7 h-7 flex items-center justify-center text-base shadow-sm bg-white/60">{girlMood.emoji}</span>
                   ) : (
-                    <span className="rounded-full w-5 h-5 border border-dashed border-gray-200 bg-white/40"></span>
+                    <span className="rounded-full w-7 h-7 border border-dashed border-gray-200 bg-white/40"></span>
                   )}
                 </div>
               </button>
@@ -188,10 +188,10 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
 
       {/* 月度统计面板 */}
       {showStats && stats && (
-        <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4 animate-fade-in">
-          <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm dark:shadow-gray-900/30 border border-gray-100 dark:border-gray-700 space-y-4 animate-fade-in">
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
             📊 {month}月心情统计
-            <span className="text-xs text-gray-400 font-normal">共记录 {stats.totalDays} 天</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">共记录 {stats.totalDays} 天</span>
           </h3>
 
           {/* 男生统计 */}
@@ -208,7 +208,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
               {MOODS.map(m => (
-                <span key={m.key} className="text-[11px] text-gray-500">
+                <span key={m.key} className="text-sm text-gray-500">
                   {m.emoji} {stats.boy[m.key] || 0}
                 </span>
               ))}
@@ -229,7 +229,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
               {MOODS.map(m => (
-                <span key={m.key} className="text-[11px] text-gray-500">
+                <span key={m.key} className="text-sm text-gray-500">
                   {m.emoji} {stats.girl[m.key] || 0}
                 </span>
               ))}
@@ -242,30 +242,30 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
       {selectedDay !== null && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setSelectedDay(null)}>
           <div
-            className="bg-white w-full max-w-lg rounded-t-3xl p-6 shadow-2xl animate-slide-up max-h-[80vh] overflow-y-auto"
+            className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-t-3xl p-6 shadow-2xl animate-slide-up max-h-[80vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-black text-gray-800">
+              <h3 className="text-base font-black text-gray-800 dark:text-gray-100">
                 {year}年{month}月{selectedDay}日
               </h3>
-              <button onClick={() => setSelectedDay(null)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200">
+              <button onClick={() => setSelectedDay(null)} className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600">
                 ✕
               </button>
             </div>
 
             {/* 心情选择 */}
-            <p className="text-xs font-bold text-gray-500 mb-3">选择今天的心情</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3">选择今天的心情</p>
             <div className="grid grid-cols-4 gap-3 mb-5">
               {MOODS.map(m => (
                 <button
                   key={m.key}
                   onClick={() => setSelectedMood(m.key)}
                   className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all duration-200 border-2
-                    ${selectedMood === m.key ? `${m.color} scale-105 shadow-md` : 'border-transparent bg-gray-50 hover:bg-gray-100'}
+                    ${selectedMood === m.key ? `${m.color} scale-105 shadow-md` : 'border-transparent bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'}
                   `}
                 >
-                  <span className="text-2xl">{m.emoji}</span>
+                  <span className="text-3xl">{m.emoji}</span>
                   <span className={`text-[11px] font-bold ${selectedMood === m.key ? '' : 'text-gray-500'}`}>
                     {m.label}
                   </span>
@@ -274,12 +274,12 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
             </div>
 
             {/* 日记输入 */}
-            <p className="text-xs font-bold text-gray-500 mb-2">日记 (可选)</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">日记 (可选)</p>
             <textarea
               value={diaryText}
               onChange={(e) => setDiaryText(e.target.value)}
               placeholder="今天发生了什么..."
-              className="w-full p-3.5 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-300 text-sm resize-none"
+              className="w-full p-3.5 bg-gray-50 dark:bg-gray-700 dark:text-gray-100 rounded-2xl border border-gray-100 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-pink-100 focus:border-pink-300 text-sm resize-none"
               rows={3}
             />
 
@@ -289,7 +289,7 @@ export default function MoodClient({ role, boyName, girlName }: { role: string; 
                 <button
                   onClick={handleDelete}
                   disabled={isSubmitting}
-                  className="flex-shrink-0 px-4 py-3 bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded-2xl text-sm font-bold transition-colors disabled:opacity-50"
+                  className="flex-shrink-0 px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-500 dark:text-gray-400 hover:text-red-500 rounded-2xl text-sm font-bold transition-colors disabled:opacity-50"
                 >
                   🗑️ 清除
                 </button>

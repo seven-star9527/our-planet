@@ -12,7 +12,8 @@
       "Bash(node *)",
       "Bash(npx next *)",
       "Bash(Select-Object Mode, Name)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(New-Item *)"
     ]
   }
 }
