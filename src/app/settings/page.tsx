@@ -326,7 +326,7 @@ export default function SettingsPage() {
                     <div className="text-base font-bold drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>我们的专属星球 💫</div>
                     {anniversaryDate && (
                       <div className="text-xs mt-1 font-medium drop-shadow-lg" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                        在一起的第 {Math.floor((new Date().getTime() - new Date(anniversaryDate).getTime()) / (1000 * 60 * 60 * 24))} 天
+                        在一起的第 {Math.floor((new Date(new Date().setHours(0,0,0,0)).getTime() - new Date(anniversaryDate + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)) + 1} 天
                       </div>
                     )}
                   </div>

@@ -6,12 +6,14 @@ import changelogs from '@/data/changelogs.json';
 export default function ChangelogPopup() {
   const [visible, setVisible] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [manual, setManual] = useState(false);
 
   const latestVersion = changelogs.versions[0];
   const olderVersions = changelogs.versions.slice(1);
 
   const dismiss = useCallback(() => {
     setVisible(false);
+    setManual(false);
     if (latestVersion) {
       localStorage.setItem('changelog_seen_version', latestVersion.version);
     }
@@ -31,18 +33,18 @@ export default function ChangelogPopup() {
 
   // 手动触发：监听自定义事件
   useEffect(() => {
-    const handler = () => setVisible(true);
+    const handler = () => { setVisible(true); setManual(true); };
     window.addEventListener('show-changelog', handler);
     return () => window.removeEventListener('show-changelog', handler);
   }, []);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || manual) return;
     const timer = setTimeout(() => {
       dismiss();
     }, 5000);
     return () => clearTimeout(timer);
-  }, [visible, dismiss]);
+  }, [visible, manual, dismiss]);
 
   if (!initialized || !visible || !latestVersion) return null;
 
@@ -111,7 +113,7 @@ export default function ChangelogPopup() {
 
         {/* Auto-close indicator */}
         <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <span className="text-[11px] text-gray-400 dark:text-gray-500">5s 后自动关闭</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500">{manual ? '点击外部关闭' : '5s 后自动关闭'}</span>
           <button
             onClick={dismiss}
             className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full text-xs font-bold hover:from-pink-600 hover:to-purple-600 transition-all shadow-md"

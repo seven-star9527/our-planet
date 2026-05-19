@@ -54,9 +54,10 @@ export default async function Home() {
   let daysTogether = 0;
   if (anniversaryDate) {
     const today = new Date();
-    const startDate = new Date(anniversaryDate);
-    const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    daysTogether = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(anniversaryDate + 'T00:00:00');
+    const diffTime = today.getTime() - startDate.getTime();
+    daysTogether = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
   }
 
   // 2. 获取“那年今日” (随机掉落的记忆)
@@ -112,8 +113,8 @@ export default async function Home() {
             </>
           )}
 
+          <ChangelogButton />
           <div className="relative z-10">
-            <ChangelogButton />
             <h1 className={`text-2xl md:text-3xl font-extrabold mb-2 tracking-tight ${bgImage ? 'drop-shadow-lg' : 'drop-shadow-sm'}`} style={bgImage ? { textShadow: '0 2px 8px rgba(0,0,0,0.5)' } : undefined}>
               我们的专属星球 💫
             </h1>
